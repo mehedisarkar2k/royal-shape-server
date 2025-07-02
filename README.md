@@ -20,4 +20,4 @@ Hey, there! Welcome to the backend service of Royal Threading and Beauty.
 
 ## API Documentation
 
-[https://documenter.getpostman.com/view/15068237/2sB2cd5ydq](https://documenter.getpostman.com/view/15068237/2sB2cd5ydq)
+[https://documenter.getpostman.com/view/15068237/2sB34Zs57R](https://documenter.getpostman.com/view/15068237/2sB34Zs57R)

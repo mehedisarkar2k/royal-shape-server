@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to Sticky Class</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.6;
+      color: #333333;
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      margin: 0;
+    "
+  >
+    <div
+      class="container"
+      style="
+        max-width: 600px;
+        width: 100%;
+        background-color: #ffffff;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      "
+    >
+      <div
+        class="header"
+        style="
+          background-color: #00418e;
+          color: #ffffff;
+          padding: 40px 30px;
+          text-align: center;
+          position: relative;
+          overflow: hidden;
+        "
+      >
+        <h1 style="font-size: 32px; font-weight: 700; margin: 0; position: relative; z-index: 1">
+          Welcome to Sticky Class
+        </h1>
+      </div>
+
+      <div class="content" style="padding: 40px 30px">
+        <div class="section" style="margin-bottom: 40px">
+          <h2
+            style="
+              color: #00418e;
+              font-size: 24px;
+              font-weight: 600;
+              margin-bottom: 20px;
+              position: relative;
+              padding-bottom: 10px;
+            "
+          >
+            Hello, there!
+          </h2>
+          <p>
+            We're thrilled to have you on board. Your journey with us begins now, and we're excited to help you make the
+            most of our platform.
+          </p>
+        </div>
+
+        <div
+          class="otp-section"
+          style="
+            background-color: #c7e1ff;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+            overflow: hidden;
+          "
+        >
+          <div class="otp-content" style="position: relative; z-index: 1">
+            <h2 style="color: #00418e; font-size: 24px; font-weight: 600">Verify Your Email</h2>
+            <p>
+              To ensure the security of your account, please use the following One-Time Password (OTP) to verify your
+              email address:
+            </p>
+            <div
+              class="otp-code"
+              aria-label="Your one-time password is"
+              style="
+                font-size: 36px;
+                font-weight: 700;
+                color: #00418e;
+                letter-spacing: 8px;
+                margin: 20px 0;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+              "
+            >
+              {{otp}}
+            </div>
+            <p>
+              This OTP will expire in {{expireInMinute}} minutes. If you didn't request this verification, please ignore
+              this email.
+            </p>
+          </div>
+        </div>
+
+        <div class="section" style="margin-bottom: 40px">
+          <h2
+            style="
+              color: #00418e;
+              font-size: 24px;
+              font-weight: 600;
+              margin-bottom: 20px;
+              position: relative;
+              padding-bottom: 10px;
+            "
+          >
+            Getting Started
+          </h2>
+          <p>Here are a few things you can do to get started:</p>
+          <ul>
+            <li>Complete your profile</li>
+            <li>Explore our features</li>
+            <li>Connect with other users</li>
+          </ul>
+          <p style="text-align: center; margin-top: 30px">
+            <a
+              href="#"
+              class="cta-button"
+              style="
+                display: inline-block;
+                background-color: #00418e;
+                color: #ffffff;
+                text-decoration: none;
+                padding: 12px 30px;
+                border-radius: 30px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+              "
+              >Explore Your Dashboard</a
+            >
+          </p>
+        </div>
+      </div>
+
+      <div
+        class="footer"
+        style="background-color: #f4f4f4; color: #666; text-align: center; padding: 20px; font-size: 14px"
+      >
+        <p>&copy; {{copyRightYear}} Sticky Class. All rights reserved.</p>
+        <p>If you have any questions, please contact our support team at support@stickyclass.com</p>
+      </div>
+    </div>
+  </body>
+</html>

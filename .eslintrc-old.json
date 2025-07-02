@@ -1,0 +1,57 @@
+{
+  "env": {
+    "es2021": true,
+    "node": true
+  },
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "sourceType": "module",
+    "project": ["tsconfig.json"]
+  },
+
+  "extends": ["airbnb-base", "airbnb-typescript/base", "plugin:@typescript-eslint/recommended", "prettier"],
+  "plugins": ["@typescript-eslint", "prettier"],
+  "rules": {
+    "import/prefer-default-export": "off",
+    "quotes": [2, "double", { "avoidEscape": true }],
+    "no-multi-spaces": 1,
+    "comma-dangle": 0,
+    "no-underscore-dangle": 0,
+    "no-param-reassign": 1,
+    "no-return-assign": 0,
+    "camelcase": 1,
+    "no-plusplus": 1,
+    "no-await-in-loop": 1,
+    "no-unreachable": 1,
+    "no-unused-vars": 1,
+    "import/extensions": 0,
+    "max-classes-per-file": 0,
+    "@typescript-eslint/no-redeclare": 1,
+    "no-console": 1,
+    "prettier/prettier": "error",
+    "@typescript-eslint/naming-convention": [
+      "error",
+      {
+        "selector": "variableLike",
+        "format": ["camelCase", "PascalCase", "UPPER_CASE"],
+        "leadingUnderscore": "allow",
+        "trailingUnderscore": "allow",
+        "filter": {
+          "regex": "^_id$",
+          "match": false
+        }
+      }
+    ]
+  },
+  "settings": {
+    "import/resolver": {
+      "typescript": {},
+      "node": {
+        "extensions": [".js", ".jsx", ".ts", ".tsx"]
+      }
+    },
+    "import/parsers": {
+      "@typescript-eslint/parser": [".ts"]
+    }
+  }
+}

@@ -7,7 +7,7 @@ import cors, { CorsOptions } from "cors";
 import v1Router from "./routes";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
 import { SendResponse } from "./utils";
-// import { deserializeUser } from "./middleware"; TODO: activate this middleware when auth is implemented
+import { deserializeUser } from "./middleware";
 
 const app: Express = express();
 
@@ -43,7 +43,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-// app.use(deserializeUser); TODO: activate this middleware when auth is implemented
+app.use(deserializeUser);
 
 app.get("/", (req: Request, res: Response): void => {
   SendResponse.success({ res, message: `Hello from ${PROJECT_NAME} Backend Service!!!` });

@@ -8,7 +8,10 @@ export async function contactFormSubmitHandler(
   res: Response
 ) {
   const data = req.body;
-  const contact = await createContact(data);
+  const contact = await createContact({
+    ...data,
+    phone: { ...data.phone, e164: `${data.phone.countryCode}${data.phone.number}`.trim() }
+  });
   await sendContactUsEmail(data);
   return SendResponse.success({
     res,

@@ -7,5 +7,4 @@ export { default as asyncWrapper } from "./async-warpper";
 export { default as multerUpload } from "./multer";
 export * from "./send-email";
 export * from "./jwt-helper";
-export * from "./firebase";
 export * from "./datetime-helper";

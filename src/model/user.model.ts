@@ -14,7 +14,7 @@ export class User {
   @Prop({ required: false, type: String, default: null })
   email?: string | null;
 
-  @Prop({ required: false, type: Phone, default: null })
+  @Prop({ required: false, type: Phone, default: null, _id: false })
   phone?: Phone | null;
 
   @Prop({ required: true, type: String, enum: UserType })

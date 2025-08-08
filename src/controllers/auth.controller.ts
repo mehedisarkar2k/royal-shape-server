@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import admin from "firebase-admin";
 import { v4 as uuid } from "uuid";
-import { AdminLoginType, CustomerLoginType, CustomerRegistrationType } from "../schemas";
+import { AdminLoginType, CustomerLoginType } from "../schemas";
 import { createUser, findUserByEmail, findUserByPhone } from "../services";
 import { SendErrorResponse, SendResponse } from "../utils";
 import { ApplicationServices, BAD_REQUEST, DATA_NOT_FOUND, INPUT_MISSING, UNAUTHORIZED_ERROR } from "../constants";
@@ -103,84 +103,13 @@ export const adminLoginHandler = async (
   });
 };
 
-export const customerRegistrationHandler = async (
-  req: Request<Record<string, never>, Record<string, never>, CustomerRegistrationType>,
-  res: Response
-) => {
-  const functionName = customerRegistrationHandler.name;
-  const { fullName, email, phone } = req.body;
-
-  if (!email && !phone) {
-    return SendErrorResponse.badRequest({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "Invalid registration data",
-        INPUT_MISSING,
-        "Please provide either an email or a phone number for registration"
-      )
-    });
-  }
-
-  let user = null;
-
-  if (email) {
-    user = await findUserByEmail(email);
-  } else if (phone) {
-    user = await findUserByPhone(`${phone.countryCode}${phone.number}`.trim());
-  }
-
-  if (user) {
-    return SendErrorResponse.badRequest({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "User already exists",
-        BAD_REQUEST,
-        "A user with the provided email or phone number already exists. Please try logging in instead."
-      )
-    });
-  }
-
-  const newUser = await createUser({
-    // * last name is optional and can be null. if no last portion of fullname that is no space then no last name that is null. But if there is one or more spaces then last name is the last portion of fullname and first name is the portion before the last space
-    firstName: fullName.split(" ").slice(0, -1).join(" "),
-    lastName: fullName.split(" ").slice(-1).join(" ") || null,
-    email: email || null,
-    phone: phone
-      ? { countryCode: phone.countryCode, number: phone.number, e164: `${phone.countryCode}${phone.number}`.trim() }
-      : null,
-    userType: "customer",
-    role: "customer"
-  });
-
-  return SendResponse.success({
-    res,
-    message: "User registered successfully",
-    data: {
-      user: {
-        id: newUser._id.toString(),
-        email: newUser.email,
-        phone: newUser.phone,
-        firstName: newUser.firstName,
-        userType: newUser.userType,
-        role: newUser.role
-      }
-    }
-  });
-};
-
 export const customerLoginHandler = async (
   req: Request<Record<string, never>, Record<string, never>, CustomerLoginType>,
   res: Response
 ) => {
   const functionName = customerLoginHandler.name;
   const accessToken = (req.headers.authorization || "").replace(/^Bearer\s/, "");
-  const { email, phone } = req.body;
+  const { fullName, email, phone } = req.body;
 
   if (!accessToken) {
     return SendErrorResponse.unauthorized({
@@ -260,16 +189,31 @@ export const customerLoginHandler = async (
   }
 
   if (!user) {
-    return SendErrorResponse.notFound({
+    const newUser = await createUser({
+      // * last name is optional and can be null. if no last portion of fullname that is no space then no last name that is null. But if there is one or more spaces then last name is the last portion of fullname and first name is the portion before the last space
+      firstName: fullName ? fullName.split(" ").slice(0, -1).join(" ") : email?.split("@")[0] || "New User",
+      lastName: fullName ? fullName.split(" ").slice(-1).join(" ") : null,
+      email: email || null,
+      phone: phone
+        ? { countryCode: phone.countryCode, number: phone.number, e164: `${phone.countryCode}${phone.number}`.trim() }
+        : null,
+      userType: "customer",
+      role: "customer"
+    });
+
+    return SendResponse.success({
       res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "User not found",
-        DATA_NOT_FOUND,
-        "No user found with the provided email or phone number"
-      )
+      message: "User logged in successfully",
+      data: {
+        user: {
+          id: newUser._id.toString(),
+          email: newUser.email,
+          phone: newUser.phone,
+          firstName: newUser.firstName,
+          userType: newUser.userType,
+          role: newUser.role
+        }
+      }
     });
   }
 

@@ -4,6 +4,7 @@ import config from "config";
 import contactRouter from "./contact.router";
 import authRouter from "./auth.router";
 import branchRouter from "./branch.router";
+import serviceRouter from "./service.router";
 
 import { SendResponse } from "../utils";
 
@@ -18,5 +19,6 @@ router.get("/", (req, res): void => {
 router.use("/auth", authRouter);
 router.use("/contact", contactRouter);
 router.use("/branch", branchRouter);
+router.use("/service", serviceRouter);
 
 export default router;

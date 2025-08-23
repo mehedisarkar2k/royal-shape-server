@@ -3,7 +3,7 @@ import admin from "firebase-admin";
 import { v4 as uuid } from "uuid";
 import { SendErrorResponse, logger } from "../utils";
 import { ApplicationServices, UNAUTHORIZED_ERROR, UNEXPECTED_ERROR } from "../constants";
-import { captureErrorLog, findUserByEmail, findUserByPhone } from "../services";
+import { captureErrorLog, findUserByEmailLeanFormat, findUserByPhoneLeanFormat } from "../services";
 
 export const deserializeUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const functionName = deserializeUser.name;
@@ -62,7 +62,7 @@ export const deserializeUser = async (req: Request, res: Response, next: NextFun
         return;
       }
       const userPhone = verifiedUser.phone_number;
-      user = await findUserByPhone(userPhone);
+      user = await findUserByPhoneLeanFormat(userPhone);
     } else {
       if (!verifiedUser.email) {
         // await captureErrorLog({});
@@ -84,7 +84,7 @@ export const deserializeUser = async (req: Request, res: Response, next: NextFun
         return;
       }
       const userEmail = verifiedUser.email;
-      user = await findUserByEmail(userEmail);
+      user = await findUserByEmailLeanFormat(userEmail);
     }
 
     if (!user) {

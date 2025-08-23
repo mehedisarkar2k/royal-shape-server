@@ -11,3 +11,7 @@ export function findAllBranches() {
 export function findBranchById(id: string) {
   return BranchModel.findById(id);
 }
+
+export function findBranchesByIds(ids: string[]) {
+  return BranchModel.find({ _id: { $in: ids } });
+}

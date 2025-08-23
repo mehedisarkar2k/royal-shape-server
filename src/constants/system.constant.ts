@@ -28,5 +28,11 @@ export enum ErrorReportRole {
 export enum ApplicationServices {
   MIDDLEWARE = "Middleware",
   AUTHENTICATION = "Authentication",
-  USER = "User"
+  USER = "User",
+  BRANCH = "Branch",
+  CUSTOMER = "Customer",
+  EMPLOYEE = "Employee",
+  SERVICE = "Service",
+  CAREER = "Career",
+  BLOG = "Blog"
 }

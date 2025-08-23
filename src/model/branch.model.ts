@@ -11,26 +11,26 @@ class OpeningHour {
 }
 
 class WeeklySchedule {
-  @Prop({ required: true, type: Array<OpeningHour>, default: [], _id: false })
-  monday: OpeningHour[];
+  @Prop({ required: true, type: OpeningHour, default: null, _id: false })
+  monday: OpeningHour;
 
-  @Prop({ required: true, type: Array<OpeningHour>, default: [], _id: false })
-  tuesday: OpeningHour[];
+  @Prop({ required: true, type: OpeningHour, default: null, _id: false })
+  tuesday: OpeningHour;
 
-  @Prop({ required: true, type: Array<OpeningHour>, default: [], _id: false })
-  wednesday: OpeningHour[];
+  @Prop({ required: true, type: OpeningHour, default: null, _id: false })
+  wednesday: OpeningHour;
 
-  @Prop({ required: true, type: Array<OpeningHour>, default: [], _id: false })
-  thursday: OpeningHour[];
+  @Prop({ required: true, type: OpeningHour, default: null, _id: false })
+  thursday: OpeningHour;
 
-  @Prop({ required: true, type: Array<OpeningHour>, default: [], _id: false })
-  friday: OpeningHour[];
+  @Prop({ required: true, type: OpeningHour, default: null, _id: false })
+  friday: OpeningHour;
 
-  @Prop({ required: true, type: Array<OpeningHour>, default: [], _id: false })
-  saturday: OpeningHour[];
+  @Prop({ required: true, type: OpeningHour, default: null, _id: false })
+  saturday: OpeningHour;
 
-  @Prop({ required: true, type: Array<OpeningHour>, default: [], _id: false })
-  sunday: OpeningHour[];
+  @Prop({ required: true, type: OpeningHour, default: null, _id: false })
+  sunday: OpeningHour;
 }
 
 @ModelOptions({ schemaOptions: { collection: "branches", timestamps: true } })
@@ -61,6 +61,9 @@ export class Branch {
 
   @Prop({ required: false, type: String, default: null })
   establishedYear?: string | null;
+
+  @Prop({ required: false, type: Number, default: 0 })
+  rating?: number;
 }
 
 export const BranchModel = getModelForClass(Branch);

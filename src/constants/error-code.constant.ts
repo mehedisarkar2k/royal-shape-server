@@ -21,7 +21,7 @@ export const CONFLICT_ERROR = {
 export const FORBIDDEN_ERROR = {
   code: "forbidden",
   message:
-    "Access denied. You do not have permission to perform this action.RetryClaude can make mistakes. Please double-check responses."
+    "Access denied. You do not have permission to perform this action. Please contact support if you believe this is an error."
 };
 
 export const INPUT_MISSING = {

@@ -22,6 +22,9 @@ export class ServiceCategory {
 
   @Prop({ required: true, type: String, enum: ServiceStatus })
   status: ServiceStatus;
+
+  @Prop({ required: true, type: String })
+  thumbnail: string;
 }
 
 export const ServiceCategoryModel = getModelForClass(ServiceCategory);

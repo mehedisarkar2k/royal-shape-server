@@ -87,14 +87,41 @@ export async function createServiceCategoryHandler(
 export async function getAllServiceCategoriesHandler(req: Request, res: Response) {
   const serviceCategories = await findAllServiceCategories();
 
-  const servicesInfo = Promise.all(
+  return SendResponse.success({
+    res,
+    message: "Service categories retrieved successfully!",
+    data: {
+      serviceCategories: serviceCategories.map((category) => ({
+        id: category._id.toString(),
+        name: category.name
+      }))
+    }
+  });
+}
+
+export async function getAllServicesWithCategoriesHandler(req: Request, res: Response) {
+  const serviceCategories = await findAllServiceCategories();
+
+  const servicesInfo = await Promise.all(
     serviceCategories.map(async (category) => {
       const s = await findServicesByCategoryId(category._id.toString());
       return {
         categoryId: category._id.toString(),
         categoryName: category.name,
         categoryDescription: category.description,
-        services: s
+        categoryStatus: category.status,
+        categoryBranches: category.branches,
+        services: s.map((service) => ({
+          id: service._id.toString(),
+          name: service.name,
+          description: service.description,
+          duration: service.duration,
+          price: service.price,
+          currency: service.currency,
+          status: service.status,
+          branches: service.branches,
+          numberOfBookings: 10 // TODO: Placeholder for number of bookings
+        }))
       };
     })
   );
@@ -102,7 +129,7 @@ export async function getAllServiceCategoriesHandler(req: Request, res: Response
   return SendResponse.success({
     res,
     message: "Service categories retrieved successfully!",
-    data: { serviceCategories }
+    data: { servicesInfo }
   });
 }
 

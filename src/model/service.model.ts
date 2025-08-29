@@ -29,8 +29,8 @@ export class Service {
   @Prop({ required: false, type: String, default: "AUD" })
   currency?: string | "AUD";
 
-  @Prop({ required: true, type: String })
-  thumbnail: string;
+  @Prop({ required: false, type: String, default: null })
+  thumbnail?: string | null;
 
   @Prop({ required: true, type: Array<BranchRef>, default: [], _id: false })
   branches: BranchRef[];

@@ -7,6 +7,7 @@ import {
   deleteServiceCategoryHandler,
   deleteServiceHandler,
   getAllServiceCategoriesHandler,
+  getAllServicesWithCategoriesHandler,
   updateServiceCategoryHandler,
   updateServiceHandler
 } from "../controllers";
@@ -21,6 +22,7 @@ router.post(
   asyncWrapper(createServiceCategoryHandler)
 );
 router.get("/service-category/all", requireUser, asyncWrapper(getAllServiceCategoriesHandler));
+router.get("/service-with-category/all", requireUser, asyncWrapper(getAllServicesWithCategoriesHandler));
 router.put(
   "/service-category/update/:id",
   requireUser,

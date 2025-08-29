@@ -12,6 +12,9 @@ export const createServiceCategorySchema = object({
     }),
     status: nativeEnum(ServiceStatus, {
       required_error: "Service category status is required"
+    }),
+    thumbnail: string({
+      required_error: "Service category thumbnail is required"
     })
   })
 });
@@ -35,9 +38,7 @@ export const createServiceSchema = object({
       message: "Service price must be a positive number"
     }),
     currency: string().optional(),
-    thumbnail: string({
-      required_error: "Service thumbnail is required"
-    }),
+    thumbnail: string().optional().nullable(),
     branchIds: array(string()).nonempty({
       message: "At least one branch ID is required"
     }),

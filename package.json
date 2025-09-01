@@ -16,6 +16,8 @@
     "prebuild": "npm run check-node-version && npm run replace-punycode",
     "build": "tsc --build",
     "postbuild": "npm run copy-templates",
+    "vercel-build": "npm run check-node-version && npm run replace-punycode && tsc --build && npm run copy-templates",
+    "vercel-postbuild": "echo 'Build completed for Vercel'",
     "dev": "nodemon",
     "lint": "eslint",
     "lint:fix": "eslint src/**/*.ts --ext .ts --fix",

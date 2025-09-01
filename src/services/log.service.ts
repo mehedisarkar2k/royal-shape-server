@@ -27,7 +27,7 @@ export async function captureErrorLog(data: {
     screenshotUrls,
     additionalData
   } = data;
-  const environment = config.get<string>("server.environment");
+  const environment = process.env.ENVIRONMENT || config.get<string>("server.environment");
   const eLog = await LogModel.create({
     idForUser,
     reportedBy,
@@ -55,7 +55,7 @@ export async function captureInfoLog(data: {
   tags?: string[];
 }) {
   const { message, source, metadata, tags } = data;
-  const environment = config.get<string>("server.environment");
+  const environment = process.env.ENVIRONMENT || config.get<string>("server.environment");
   const infoLog = await LogModel.create({
     level: LogLevel.INFO,
     source: {

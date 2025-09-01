@@ -11,8 +11,9 @@ import { deserializeUser } from "./middleware";
 
 const app: Express = express();
 
-const PROJECT_NAME: string = config.get<string>("server.projectName") || "Royal Threading and Beauty";
-const ENVIRONMENT: string = config.get<string>("server.environment");
+const PROJECT_NAME: string =
+  process.env.PROJECT_NAME || config.get<string>("server.projectName") || "Royal Threading and Beauty";
+const ENVIRONMENT: string = process.env.ENVIRONMENT || config.get<string>("server.environment");
 const v1BaseEndpoint = ENVIRONMENT && ENVIRONMENT.toLowerCase() === "development" ? "/api/v1" : "/v1";
 
 app.use(express.json());

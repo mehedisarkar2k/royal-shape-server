@@ -10,7 +10,8 @@ import { SendResponse } from "../utils";
 
 const router = express.Router();
 
-const PROJECT_NAME: string = config.get<string>("server.projectName") || "Backend Starter Service";
+const PROJECT_NAME: string =
+  process.env.PROJECT_NAME || config.get<string>("server.projectName") || "Backend Starter Service";
 
 router.get("/", (req, res): void => {
   SendResponse.success({ res, message: `${PROJECT_NAME} - v1 API root directory` });

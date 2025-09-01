@@ -11,6 +11,10 @@ const initializeApp = async () => {
     logger.info("Serverless function initialized successfully");
   } catch (error) {
     logger.error("An error occurred while connecting to the database or firebase", (error as Error).message);
+    // Log the specific error details
+    if (error instanceof Error) {
+      logger.error("Error details:", error.stack);
+    }
     throw error;
   }
 };

@@ -23,14 +23,14 @@ const transporter = nodemailer.createTransport({
   host: "mail.privateemail.com",
   port: 587, // secure:465
   auth: {
-    user: config.get("smtp.email") as string,
-    pass: config.get("smtp.password") as string
+    user: process.env.SMTP_EMAIL || (config.get("smtp.email") as string),
+    pass: process.env.SMTP_PASSWORD || (config.get("smtp.password") as string)
   }
 });
 
 export const sendEmail = async (to: string, subject: string, html: string) => {
   const mailOptions = {
-    from: config.get("smtp.email") as string,
+    from: process.env.SMTP_EMAIL || (config.get("smtp.email") as string),
     to,
     subject,
     html
@@ -71,5 +71,5 @@ export const sendContactUsEmail = async ({
     copyRightYear
   });
 
-  await sendEmail(config.get("smtp.email") as string, subject, html);
+  await sendEmail(process.env.SMTP_EMAIL || (config.get("smtp.email") as string), subject, html);
 };

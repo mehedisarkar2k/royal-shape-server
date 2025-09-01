@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "dist/src/index.js",
+      "src": "api/index.ts",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "dist/src/index.js"
+      "dest": "api/index.ts"
     }
   ],
   "env": {
@@ -29,10 +29,5 @@
     "REFRESH_TOKEN_PUBLIC_KEY": "@REFRESH_TOKEN_PUBLIC_KEY",
     "REFRESH_TOKEN_PRIVATE_KEY": "@REFRESH_TOKEN_PRIVATE_KEY",
     "REFRESH_TOKEN_EXPIRY": "@REFRESH_TOKEN_EXPIRY"
-  },
-  "functions": {
-    "dist/src/index.js": {
-      "maxDuration": 30
-    }
   }
 }

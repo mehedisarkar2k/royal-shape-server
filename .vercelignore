@@ -1,0 +1,50 @@
+# Vercel ignore file - excludes files from deployment
+
+# Development files
+
+.env
+.env.local
+.env.development
+nodemon.json
+
+# Build artifacts that will be rebuilt
+
+node_modules
+dist
+
+# Development tools
+
+.husky
+.git
+
+# Logs
+
+logs/\*.log
+
+# IDE files
+
+.vscode
+.idea
+
+# OS files
+
+.DS_Store
+Thumbs.db
+
+# Temporary files
+
+_.tmp
+_.temp
+
+# Test files
+
+**/\*.test.ts
+**/\*.spec.ts
+
+# Documentation (except deployment guide)
+
+README.md
+
+# Uploads directory (should use cloud storage in production)
+
+uploads

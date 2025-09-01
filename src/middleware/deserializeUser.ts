@@ -3,7 +3,7 @@ import admin from "firebase-admin";
 import { v4 as uuid } from "uuid";
 import { SendErrorResponse, logger } from "../utils";
 import { ApplicationServices, UNAUTHORIZED_ERROR, UNEXPECTED_ERROR } from "../constants";
-import { captureErrorLog, findUserByEmailLeanFormat, findUserByPhoneLeanFormat } from "../services";
+import { captureErrorLog, findUserByEmailLeanFormat, findUserByPhoneLeanFormat, initializeFirebase } from "../services";
 
 export const deserializeUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const functionName = deserializeUser.name;
@@ -17,6 +17,11 @@ export const deserializeUser = async (req: Request, res: Response, next: NextFun
 
     if (req.originalUrl.includes("/login") || req.originalUrl.includes("/registration")) {
       return next();
+    }
+
+    if (!admin.apps.length) {
+      logger.warn("Firebase admin app is not initialized. Initializing now...");
+      await initializeFirebase();
     }
 
     const verifiedUser = await admin.auth().verifyIdToken(accessToken);

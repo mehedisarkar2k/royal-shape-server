@@ -1,25 +1,27 @@
 import "dotenv/config";
-import app from "../src/app";
-import { logger, dbConnection } from "../src/utils";
-import { initializeFirebase } from "../src/services";
 
-// Initialize everything before exporting the app
+import app from "../src/app";
+import { dbConnection } from "../src/utils/db-connection";
+import { initializeFirebase } from "../src/services/firebase.service";
+
+// Ensure the database connection and Firebase are initialized before the app is used.
+// Vercel will cache this function, so the connection logic only runs on a cold start.
+let isInitialized = false;
+
 const initializeApp = async () => {
-  try {
+  if (!isInitialized) {
     await dbConnection();
     await initializeFirebase();
-    logger.info("Serverless function initialized successfully");
-  } catch (error) {
-    logger.error("An error occurred while connecting to the database or firebase", (error as Error).message);
-    // Log the specific error details
-    if (error instanceof Error) {
-      logger.error("Error details:", error.stack);
-    }
-    throw error;
+    isInitialized = true;
   }
 };
 
-// Initialize on first import
-initializeApp();
+// Use middleware to ensure the app is initialized on every request
+// (even though Vercel caches it)
+app.use(async (req, res, next) => {
+  await initializeApp();
+  next();
+});
 
+// IMPORTANT: Export the Express app
 export default app;

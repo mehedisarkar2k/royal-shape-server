@@ -4,10 +4,9 @@ import { logger } from "../utils";
 
 export const initializeFirebase = async () => {
   try {
-    const { privateKey } = JSON.parse(process.env.FIREBASE_PRIVATE_KEY || "{}");
     const firebaseConfig: admin.ServiceAccount = {
       projectId: process.env.FIREBASE_PROJECT_ID,
-      privateKey: privateKey.replace(/\\n/g, "\n"),
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL
     };
 

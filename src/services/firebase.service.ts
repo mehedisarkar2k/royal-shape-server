@@ -5,9 +5,12 @@ import { logger } from "../utils";
 export const initializeFirebase = async () => {
   try {
     const firebaseConfig: admin.ServiceAccount = {
-      projectId: config.get("firebase.projectId") as string,
-      privateKey: (config.get("firebase.privateKey") as string).replace(/\\n/g, "\n"),
-      clientEmail: config.get("firebase.clientEmail") as string
+      projectId: process.env.FIREBASE_PROJECT_ID || (config.get("firebase.projectId") as string),
+      privateKey: (process.env.FIREBASE_PRIVATE_KEY || (config.get("firebase.privateKey") as string)).replace(
+        /\\n/g,
+        "\n"
+      ),
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL || (config.get("firebase.clientEmail") as string)
     };
 
     if (!admin.apps.length) {

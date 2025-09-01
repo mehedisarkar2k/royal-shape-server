@@ -7,6 +7,9 @@ export class Phone {
 
   @Prop({ type: String, required: true })
   number: string;
+
+  @Prop({ required: true, type: String })
+  e164: string;
 }
 
 export class Address {

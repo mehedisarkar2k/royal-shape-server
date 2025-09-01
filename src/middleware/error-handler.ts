@@ -31,8 +31,7 @@ const errorHandler = (error: Error, req: Request, res: Response, next: NextFunct
     return;
   }
 
-  const { statusCode } = res;
-  res.status(statusCode).json({
+  res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
     success: false,
     message: error.name.concat(": ").concat(error.message),
     data: { clientError },

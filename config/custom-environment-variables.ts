@@ -12,6 +12,11 @@ export default {
     email: "SMTP_EMAIL",
     password: "SMTP_PASSWORD"
   },
+  firebase: {
+    projectId: "FIREBASE_PROJECT_ID",
+    privateKey: "FIREBASE_PRIVATE_KEY",
+    clientEmail: "FIREBASE_CLIENT_EMAIL"
+  },
   auth: {
     accessTokenPublicKey: "ACCESS_TOKEN_PUBLIC_KEY",
     accessTokenPrivateKey: "ACCESS_TOKEN_PRIVATE_KEY",

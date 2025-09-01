@@ -1,61 +1,147 @@
-// TODO: activate this middleware when auth is implemented
+import { NextFunction, Request, Response } from "express";
+import admin from "firebase-admin";
+import { v4 as uuid } from "uuid";
+import { SendErrorResponse, logger } from "../utils";
+import { ApplicationServices, UNAUTHORIZED_ERROR, UNEXPECTED_ERROR } from "../constants";
+import { captureErrorLog, findUserByEmailLeanFormat, findUserByPhoneLeanFormat } from "../services";
 
-// import { NextFunction, Request, Response } from "express";
-// import { v4 as uuid } from "uuid";
-// import { SendErrorResponse, stripPrivateFields, initFirebaseAdmin, logger } from "../utils";
-// import { userPrivateFieldsForMiddleware } from "../model";
-// import { ApplicationServices, UNEXPECTED_ERROR } from "../constants";
-// import { findUserByEmail } from "../services";
+export const deserializeUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const functionName = deserializeUser.name;
+  const accessToken = (req.headers.authorization || "").replace(/^Bearer\s/, "");
 
-// const deserializeUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-//   const functionName = deserializeUser.name;
-//   const accessToken = (req.headers.authorization || "").replace(/^Bearer\s/, "");
+  try {
+    if (!accessToken) {
+      next();
+      return;
+    }
 
-//   try {
-//     if (!accessToken) {
-//       next();
-//       return;
-//     }
-//     const firebaseAdmin = initFirebaseAdmin(); // TODO: initialize firebase when starting app
-//     const verifiedUser = await firebaseAdmin.auth().verifyIdToken(accessToken);
+    if (req.originalUrl.includes("/login") || req.originalUrl.includes("/registration")) {
+      return next();
+    }
 
-//     const userEmail = verifiedUser.email as string;
+    const verifiedUser = await admin.auth().verifyIdToken(accessToken);
+    if (!verifiedUser) {
+      SendErrorResponse.unauthorized({
+        res,
+        message: "Unauthorized user! Access token is not valid.",
+        data: {
+          clientError: {
+            ...UNAUTHORIZED_ERROR,
+            message: "Unauthorized user! Access token is not valid."
+          },
+          endpoint: req.originalUrl,
+          method: req.method.toUpperCase(),
+          service: ApplicationServices.MIDDLEWARE,
+          functionName,
+          id: uuid()
+        }
+      });
+      return;
+    }
 
-//     const user = await findUserByEmail(userEmail);
-//     if (!user) {
-//       res.locals.user = null;
-//       next();
-//       return;
-//     }
+    let user = null;
 
-//     let formattedUser = stripPrivateFields(user, userPrivateFieldsForMiddleware);
-//     formattedUser = { ...formattedUser, _id: formattedUser._id.toString() };
-//     res.locals.user = formattedUser;
+    if (verifiedUser.firebase.sign_in_provider === "phone") {
+      if (!verifiedUser.phone_number) {
+        SendErrorResponse.unauthorized({
+          res,
+          message:
+            "Unauthorized user! Auth provider is Phone but phone number is not accessible. Access token is not valid.",
+          data: {
+            clientError: {
+              ...UNAUTHORIZED_ERROR,
+              message: "Unauthorized user! Access token is not valid."
+            },
+            endpoint: req.originalUrl,
+            method: req.method.toUpperCase(),
+            service: ApplicationServices.MIDDLEWARE,
+            functionName,
+            id: uuid()
+          }
+        });
+        return;
+      }
+      const userPhone = verifiedUser.phone_number;
+      user = await findUserByPhoneLeanFormat(userPhone);
+    } else {
+      if (!verifiedUser.email) {
+        // await captureErrorLog({});
+        SendErrorResponse.unauthorized({
+          res,
+          message: `Unauthorized user! Auth provider is ${verifiedUser.firebase.sign_in_provider} but email is not accessible. Access token is not valid.`,
+          data: {
+            clientError: {
+              ...UNAUTHORIZED_ERROR,
+              message: "Unauthorized user! Access token is not valid."
+            },
+            endpoint: req.originalUrl,
+            method: req.method.toUpperCase(),
+            service: ApplicationServices.MIDDLEWARE,
+            functionName,
+            id: uuid()
+          }
+        });
+        return;
+      }
+      const userEmail = verifiedUser.email;
+      user = await findUserByEmailLeanFormat(userEmail);
+    }
 
-//     next();
-//     return;
+    if (!user) {
+      await captureErrorLog({
+        tags: ["deserializeUser Function", "Middleware", "Auth Issues", "Auth Token Issue"],
+        message: `Invalid access token. Somehow the user is not found in the database. User email: ${verifiedUser.email}`,
+        source: {
+          functionName,
+          service: ApplicationServices.MIDDLEWARE
+        },
+        errorDetails: {
+          name: "Internal Server Error",
+          code: "500"
+        },
+        metadata: {
+          user: { firebaseUid: verifiedUser.uid, email: verifiedUser.email, phone: verifiedUser.phone_number }
+        }
+      });
+      SendErrorResponse.unauthorized({
+        res,
+        message: `Invalid access token. Somehow the user is not found in the database. User email: ${verifiedUser.email}`,
+        data: {
+          clientError: UNAUTHORIZED_ERROR,
+          endpoint: req.originalUrl,
+          functionName,
+          method: req.method.toUpperCase(),
+          service: ApplicationServices.MIDDLEWARE,
+          id: uuid()
+        }
+      });
+      return;
+    }
 
-//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-//   } catch (error: any) {
-//     // console.log(error.message);
-//     logger.error(`Error from Authorization Catch: ${error.message}`);
+    res.locals.user = { ...user, _id: user._id.toString() };
 
-//     // TODO: capture error in DB
+    next();
+    return;
 
-//     SendErrorResponse.internalServer({
-//       res,
-//       message: error.message,
-//       data: {
-//         clientError: UNEXPECTED_ERROR,
-//         endpoint: req.originalUrl,
-//         method: req.method,
-//         service: ApplicationServices.MIDDLEWARE,
-//         functionName,
-//         id: uuid()
-//       }
-//     });
-//     return;
-//   }
-// };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    // console.log(error.message);
+    logger.error(`Error from Authorization Catch: ${error.message}`);
 
-// export default deserializeUser;
+    // TODO: capture error in DB
+
+    SendErrorResponse.internalServer({
+      res,
+      message: error.message,
+      data: {
+        clientError: UNEXPECTED_ERROR,
+        endpoint: req.originalUrl,
+        method: req.method,
+        service: ApplicationServices.MIDDLEWARE,
+        functionName,
+        id: uuid()
+      }
+    });
+    return;
+  }
+};

@@ -131,3 +131,6 @@ dist
 
 # Image upload
 uploads
+
+# API Doc
+api-documentation

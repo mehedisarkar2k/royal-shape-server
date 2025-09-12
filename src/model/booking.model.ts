@@ -1,4 +1,4 @@
-import { ModelOptions, Prop } from "@typegoose/typegoose";
+import { DocumentType, getModelForClass, ModelOptions, Prop } from "@typegoose/typegoose";
 import { BookingServiceType, BookingStatus } from "../constants";
 
 @ModelOptions({ schemaOptions: { collection: "bookings", timestamps: true } })
@@ -33,3 +33,6 @@ export class Booking {
   @Prop({ required: true, type: String, enum: BookingStatus })
   status: BookingStatus;
 }
+
+export const BookingModel = getModelForClass(Booking);
+export type BookingDocumentType = DocumentType<Booking>;

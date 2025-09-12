@@ -4,3 +4,4 @@ export * from "./firebase.service";
 export * from "./user.service";
 export * from "./branch.service";
 export * from "./business-service.service";
+export * from "./booking.service";

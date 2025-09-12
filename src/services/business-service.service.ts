@@ -15,3 +15,7 @@ export async function createService(data: Service) {
 export async function findServicesByCategoryId(categoryId: string) {
   return ServiceModel.find({ categoryId });
 }
+
+export async function findServicesByIds(serviceIds: string[]) {
+  return ServiceModel.find({ _id: { $in: serviceIds } });
+}

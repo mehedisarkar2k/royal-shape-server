@@ -43,8 +43,7 @@ export default [
             match: false
           }
         }
-      ],
-      endOfLine: "warn"
+      ]
     }
   },
   eslintPluginPrettierRecommended

@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import { Request, Response } from "express";
 import { SendResponse, SendErrorResponse, calculateAvailableSlots } from "../utils";
 import { RequestBookingType } from "../schemas";

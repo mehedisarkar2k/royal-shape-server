@@ -44,7 +44,7 @@ export default [
           }
         }
       ],
-      endOfLine: "auto"
+      endOfLine: "warn"
     }
   },
   eslintPluginPrettierRecommended

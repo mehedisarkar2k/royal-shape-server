@@ -21,6 +21,12 @@ export class Booking {
   @Prop({ required: true, type: Date })
   bookingDate: Date;
 
+  @Prop({ required: true, type: String })
+  startTime: string;
+
+  @Prop({ required: true, type: String })
+  endTime: string;
+
   @Prop({ required: true, type: Number })
   totalPrice: number;
 

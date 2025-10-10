@@ -1,3 +1,5 @@
+import { getTimeDifferenceInMinutes } from "./datetime-helper";
+
 interface TimeSlot {
   startTime: string;
   endTime: string;
@@ -7,6 +9,8 @@ interface BookingInfo {
   bookingDate: Date;
   serviceIds?: string[] | null;
   comboId?: string | null;
+  startTime: string;
+  endTime: string;
 }
 
 interface ServiceInfo {
@@ -22,14 +26,24 @@ interface WorkingHours {
  * Parse duration string (e.g., "30 minutes", "1 hour", "1.5 hours") to minutes
  */
 function parseDurationToMinutes(duration: string): number {
-  const lowerDuration = duration.toLowerCase();
+  if (!duration) return 30; // Default to 30 minutes if no duration provided
 
-  if (lowerDuration.includes("hour")) {
-    const hours = parseFloat(lowerDuration.match(/[\d.]+/)?.[0] || "1");
-    return hours * 60;
-  } else if (lowerDuration.includes("minute")) {
-    const minutes = parseFloat(lowerDuration.match(/[\d.]+/)?.[0] || "30");
-    return minutes;
+  // Check if the format is hh:mm:ss
+  const parts = duration.split(":");
+
+  if (parts.length === 3) {
+    // hh:mm:ss format
+    const hours = parseInt(parts[0], 10) || 0;
+    const minutes = parseInt(parts[1], 10) || 0;
+    const seconds = parseInt(parts[2], 10) || 0;
+
+    return hours * 60 + minutes + Math.ceil(seconds / 60);
+  } else if (parts.length === 2) {
+    // hh:mm format
+    const hours = parseInt(parts[0], 10) || 0;
+    const minutes = parseInt(parts[1], 10) || 0;
+
+    return hours * 60 + minutes;
   }
 
   // Default to 30 minutes if duration format is not recognized
@@ -82,7 +96,8 @@ export function calculateAvailableSlots(
   slotDuration: number = 30 // Default slot duration in minutes
 ): { morning: TimeSlot[]; afternoon: TimeSlot[]; evening: TimeSlot[] } {
   const serviceDuration = calculateTotalServiceDuration(services);
-  const totalSlotDuration = Math.max(serviceDuration, slotDuration);
+  // const totalSlotDuration = Math.max(serviceDuration, slotDuration);
+  const totalSlotDuration = serviceDuration === 0 ? slotDuration : serviceDuration;
 
   // Convert working hours to minutes
   const startMinutes = timeToMinutes(workingHours.open);
@@ -91,11 +106,14 @@ export function calculateAvailableSlots(
   // Create array of booked time slots
   const bookedSlots: { start: number; end: number }[] = existingBookings.map((booking) => {
     const bookingTime = new Date(booking.bookingDate);
-    const bookingStartMinutes = bookingTime.getHours() * 60 + bookingTime.getMinutes();
+    // console.log("Booking time:", bookingTime);
+    // console.log("Booking time (hours):", bookingTime.getUTCHours());
+    // console.log("Booking time (minutes):", bookingTime.getUTCMinutes());
+    const bookingStartMinutes = bookingTime.getUTCHours() * 60 + bookingTime.getUTCMinutes();
+    // console.log("Booking start minutes:", bookingStartMinutes);
 
-    // For now, assume each booking takes the service duration
-    // In a real scenario, you'd calculate this based on the actual services booked
-    const bookingDuration = serviceDuration || 60; // Default to 1 hour if no services
+    const bookingDuration = getTimeDifferenceInMinutes(booking.startTime, booking.endTime);
+    // console.log("Booking duration:", bookingDuration);
 
     return {
       start: bookingStartMinutes,
@@ -106,7 +124,11 @@ export function calculateAvailableSlots(
   // Generate all possible slots
   const availableSlots: TimeSlot[] = [];
 
-  for (let currentTime = startMinutes; currentTime + totalSlotDuration <= endMinutes; currentTime += slotDuration) {
+  for (
+    let currentTime = startMinutes;
+    currentTime + totalSlotDuration <= endMinutes;
+    currentTime += totalSlotDuration
+  ) {
     const slotEnd = currentTime + totalSlotDuration;
 
     // Check if this slot conflicts with any existing booking

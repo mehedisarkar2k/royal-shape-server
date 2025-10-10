@@ -6,10 +6,10 @@ export function createBooking(data: Booking) {
 
 export function findBookingsByBranchAndDate(branchId: string, date: Date) {
   const startOfDay = new Date(date);
-  startOfDay.setHours(0, 0, 0, 0);
+  startOfDay.setUTCHours(0, 0, 0, 0);
 
   const endOfDay = new Date(date);
-  endOfDay.setHours(23, 59, 59, 999);
+  endOfDay.setUTCHours(23, 59, 59, 999);
 
   return BookingModel.find({
     branchId,

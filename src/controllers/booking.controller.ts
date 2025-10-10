@@ -1,11 +1,21 @@
 /* eslint-disable */
 
 import { Request, Response } from "express";
-import { SendResponse, SendErrorResponse, calculateAvailableSlots } from "../utils";
+import {
+  SendResponse,
+  SendErrorResponse,
+  calculateAvailableSlots,
+  isValidDate,
+  isValidTimeFormat,
+  parseDateTimeFromDateAndTimeStr
+} from "../utils";
 import { RequestBookingType } from "../schemas";
 import { findBranchById } from "../services/branch.service";
-import { findBookingsByBranchAndDate } from "../services/booking.service";
+import { createBooking, findBookingsByBranchAndDate } from "../services/booking.service";
 import { findServicesByIds } from "../services/business-service.service";
+import { BAD_REQUEST, BookingServiceType, BookingStatus, DATA_NOT_FOUND } from "../constants";
+import { createCustomer, findCustomerByEmail } from "../services/customer.service";
+import { getAustralianDateTime } from "../utils/timezone";
 
 export async function getAvailableSlotsHandler(req: Request, res: Response) {
   const functionName = getAvailableSlotsHandler.name;
@@ -17,6 +27,19 @@ export async function getAvailableSlotsHandler(req: Request, res: Response) {
       return SendErrorResponse.badRequest({
         res,
         message: "branchId, date, and serviceIds are required"
+      });
+    }
+
+    if (!isValidDate(date as string)) {
+      return SendErrorResponse.badRequest({
+        res,
+        message: "Invalid date format. Please use YYYY-MM-DD format.",
+        data: {
+          clientError: {
+            ...BAD_REQUEST,
+            message: "Invalid date format. If you believe this is an error, please contact support."
+          }
+        }
       });
     }
 
@@ -89,12 +112,124 @@ export async function requestBookingHandler(
   res: Response
 ) {
   const functionName = requestBookingHandler.name;
+  const { branchId, services, combo, date, startTime, endTime, customerInfo } = req.body;
+
+  if (!services && !combo) {
+    return SendErrorResponse.badRequest({
+      res,
+      message: "At least one of services or combo must be provided",
+      data: {
+        clientError: { ...BAD_REQUEST, message: "At least one of services or combo must be provided" }
+      }
+    });
+  }
+
+  if (!isValidDate(date)) {
+    return SendErrorResponse.badRequest({
+      res,
+      message: "Invalid date format. Please use YYYY-MM-DD format.",
+      data: {
+        clientError: {
+          ...BAD_REQUEST,
+          message: "Invalid date format. If you believe this is an error, please contact support."
+        }
+      }
+    });
+  }
+
+  if (!isValidTimeFormat(startTime) || !isValidTimeFormat(endTime)) {
+    return SendErrorResponse.badRequest({
+      res,
+      message: "Invalid time format. Please use 'HH:mm a' format.",
+      data: {
+        clientError: {
+          ...BAD_REQUEST,
+          message: "Invalid time format. If you believe this is an error, please contact support."
+        }
+      }
+    });
+  }
+
+  const serviceIdArray = services || [];
+  const comboId = combo || null;
+
+  const servicesForBooking = await findServicesByIds(serviceIdArray);
+  if (servicesForBooking.length === 0) {
+    return SendErrorResponse.notFound({
+      res,
+      message: "No services found for the provided service IDs",
+      data: { clientError: { ...DATA_NOT_FOUND, message: "No services found for the provided service IDs" } }
+    });
+  }
+  if (serviceIdArray.length !== servicesForBooking.length) {
+    return SendErrorResponse.notFound({
+      res,
+      message: "Some services not found for the provided service IDs",
+      data: { clientError: { ...DATA_NOT_FOUND, message: "Some services not found for the provided service IDs" } }
+    });
+  }
+
+  // find combos if comboIds are provided
+
+  // * create the customer in DB if not exists
+  let customer = await findCustomerByEmail(customerInfo.email.toLowerCase());
+  if (!customer) {
+    customer = await createCustomer({
+      email: customerInfo.email.toLowerCase(),
+      firstName: customerInfo.firstName.trim(),
+      lastName: (customerInfo.lastName || "").trim(),
+      phone: {
+        countryCode: customerInfo.phone.countryCode.trim(),
+        number: customerInfo.phone.number.trim(),
+        e164: `+${customerInfo.phone.countryCode.trim()}${customerInfo.phone.number.trim()}`
+      },
+      description: (customerInfo.specialNotes || "").trim()
+    });
+  }
+
+  let totalPrice = 0;
+  if (servicesForBooking.length > 0) {
+    totalPrice = servicesForBooking.reduce((sum, service) => sum + service.price, 0);
+  } else {
+    // If combo booking, find the combo and get its price
+    totalPrice = 100; // Replace with actual combo price
+  }
+
+  const bookingDate = parseDateTimeFromDateAndTimeStr(date, startTime);
+  console.log(bookingDate);
+  if (!bookingDate) {
+    return SendErrorResponse.badRequest({
+      res,
+      message: "Invalid date or time format. Parsing from date and time strings failed.",
+      data: {
+        clientError: {
+          ...BAD_REQUEST,
+          message: "Invalid date or time format. If you believe this is an error, please contact support."
+        }
+      }
+    });
+  }
+
+  const newBooking = await createBooking({
+    branchId,
+    serviceIds: serviceIdArray,
+    serviceType: serviceIdArray.length > 0 ? BookingServiceType.SPECIFIC_SERVICE : BookingServiceType.COMBO,
+    comboId,
+    customerId: customer._id.toString(),
+    bookingDate, // maybe changed
+    startTime,
+    endTime,
+    totalPrice,
+    discount: null,
+    notes: customerInfo.specialNotes || null,
+    status: BookingStatus.PENDING
+  });
 
   return SendResponse.success({
     res,
     message: "Booking requested successfully",
     data: {
-      bookingId: "booking_12345"
+      bookingId: newBooking._id.toString()
     }
   });
 }

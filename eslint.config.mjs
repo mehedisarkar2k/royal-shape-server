@@ -30,7 +30,12 @@ export default [
       "max-classes-per-file": 0,
       "@typescript-eslint/no-redeclare": 1,
       "no-console": 1,
-      // "prettier/prettier": "error",
+      "prettier/prettier": [
+        "error",
+        {
+          endOfLine: "auto"
+        }
+      ],
       "@typescript-eslint/naming-convention": [
         "error",
         {

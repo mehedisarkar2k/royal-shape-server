@@ -1,6 +1,7 @@
 /* eslint-disable */
 
 import { Request, Response } from "express";
+import { v4 as uuid } from "uuid";
 import {
   SendResponse,
   SendErrorResponse,
@@ -10,12 +11,46 @@ import {
   parseDateTimeFromDateAndTimeStr,
   isSlotAvailable
 } from "../utils";
-import { RequestBookingType } from "../schemas";
+import { ConfirmBookingType, RequestBookingType } from "../schemas";
 import { findBranchById } from "../services/branch.service";
-import { createBooking, findBookingsByBranchAndDate } from "../services/booking.service";
+import {
+  countAllBookings,
+  createBooking,
+  findAllBookingsPaginated,
+  findBookingById,
+  findBookingsByBranchAndDate,
+  findBookingsByIds,
+  findBookingStats
+} from "../services/booking.service";
 import { findServicesByIds } from "../services/business-service.service";
-import { BAD_REQUEST, BookingServiceType, BookingStatus, CONFLICT_ERROR, DATA_NOT_FOUND } from "../constants";
+import {
+  ApplicationServices,
+  BAD_REQUEST,
+  BookingServiceType,
+  BookingStatus,
+  CONFLICT_ERROR,
+  DATA_NOT_FOUND
+} from "../constants";
 import { createCustomer, findCustomerByEmail } from "../services/customer.service";
+
+const buildErrorPayload = (
+  endpoint: string,
+  functionName: string,
+  method: string,
+  message: string,
+  error: { code: string; message: string },
+  customMsg: string
+) => ({
+  message,
+  data: {
+    clientError: { ...error, message: customMsg },
+    endpoint,
+    functionName,
+    method,
+    service: ApplicationServices.BOOKING,
+    id: uuid()
+  }
+});
 
 export async function getAvailableSlotsHandler(req: Request, res: Response) {
   const functionName = getAvailableSlotsHandler.name;
@@ -247,6 +282,359 @@ export async function requestBookingHandler(
     message: "Booking requested successfully",
     data: {
       bookingId: newBooking._id.toString()
+    }
+  });
+}
+
+export async function manualCreateBookingHandler(
+  req: Request<Record<string, never>, Record<string, never>, RequestBookingType>,
+  res: Response
+) {
+  const functionName = manualCreateBookingHandler.name;
+  const { branchId, services, combo, date, startTime, endTime, customerInfo } = req.body;
+
+  if (!services && !combo) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "At least one of services or combo must be provided",
+        BAD_REQUEST,
+        "At least one of services or combo must be provided"
+      )
+    });
+  }
+
+  if (!isValidDate(date)) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Invalid date format. Please use YYYY-MM-DD format.",
+        BAD_REQUEST,
+        "Invalid date format. Please use YYYY-MM-DD format."
+      )
+    });
+  }
+
+  if (!isValidTimeFormat(startTime) || !isValidTimeFormat(endTime)) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Invalid time format. Please use 'HH:mm a' format.",
+        BAD_REQUEST,
+        "Invalid time format. Please use 'HH:mm a' format."
+      )
+    });
+  }
+
+  const requestDate = new Date(date as string);
+  const existingBookings = await findBookingsByBranchAndDate(branchId as string, requestDate);
+  if (!isSlotAvailable(date, startTime, endTime, existingBookings)) {
+    return SendErrorResponse.conflict({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Requested time slot is not available",
+        CONFLICT_ERROR,
+        "Requested time slot is not available."
+      )
+    });
+  }
+
+  const serviceIdArray = services || [];
+  const comboId = combo || null;
+
+  const servicesForBooking = await findServicesByIds(serviceIdArray);
+  if (servicesForBooking.length === 0) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "No services found for the provided service IDs",
+        DATA_NOT_FOUND,
+        "No services found for the provided service IDs"
+      )
+    });
+  }
+  if (serviceIdArray.length !== servicesForBooking.length) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Some services not found for the provided service IDs",
+        DATA_NOT_FOUND,
+        "Some services not found for the provided service IDs"
+      )
+    });
+  }
+
+  // find combos if comboIds are provided
+
+  // * create the customer in DB if not exists
+  let customer = await findCustomerByEmail(customerInfo.email.toLowerCase());
+  if (!customer) {
+    customer = await createCustomer({
+      email: customerInfo.email.toLowerCase(),
+      firstName: customerInfo.firstName.trim(),
+      lastName: (customerInfo.lastName || "").trim(),
+      phone: {
+        countryCode: customerInfo.phone.countryCode.trim(),
+        number: customerInfo.phone.number.trim(),
+        e164: `+${customerInfo.phone.countryCode.trim()}${customerInfo.phone.number.trim()}`
+      },
+      description: (customerInfo.specialNotes || "").trim()
+    });
+  }
+
+  let totalPrice = 0;
+  if (servicesForBooking.length > 0) {
+    totalPrice = servicesForBooking.reduce((sum, service) => sum + service.price, 0);
+  } else {
+    // If combo booking, find the combo and get its price
+    totalPrice = 100; // Replace with actual combo price
+  }
+
+  const bookingDate = parseDateTimeFromDateAndTimeStr(date, startTime);
+  // console.log(bookingDate);
+  if (!bookingDate) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Invalid date or time format. Parsing from date and time strings failed.",
+        BAD_REQUEST,
+        "Invalid date or time format. Parsing from date and time strings failed."
+      )
+    });
+  }
+
+  const newBooking = await createBooking({
+    branchId,
+    serviceIds: serviceIdArray,
+    serviceType: serviceIdArray.length > 0 ? BookingServiceType.SPECIFIC_SERVICE : BookingServiceType.COMBO,
+    comboId,
+    customerId: customer._id.toString(),
+    bookingDate, // maybe changed
+    startTime,
+    endTime,
+    totalPrice,
+    discount: null,
+    notes: customerInfo.specialNotes || null,
+    status: BookingStatus.CONFIRMED
+  });
+
+  return SendResponse.success({
+    res,
+    message: "Booking requested successfully",
+    data: {
+      bookingId: newBooking._id.toString()
+    }
+  });
+}
+
+export async function confirmBookingHandler(
+  req: Request<Record<string, never>, Record<string, never>, ConfirmBookingType>,
+  res: Response
+) {
+  const functionName = confirmBookingHandler.name;
+  const { bookingId } = req.body;
+
+  const booking = await findBookingById(bookingId);
+  if (!booking) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Booking not found",
+        DATA_NOT_FOUND,
+        "Booking not found"
+      )
+    });
+  }
+
+  if (booking.status === BookingStatus.CANCELLED) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Cannot confirm a cancelled booking",
+        BAD_REQUEST,
+        "Cannot confirm a cancelled booking"
+      )
+    });
+  }
+
+  if (booking.status === BookingStatus.CONFIRMED) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Booking is already confirmed",
+        BAD_REQUEST,
+        "Booking is already confirmed"
+      )
+    });
+  }
+
+  booking.status = BookingStatus.CONFIRMED;
+  await booking.save();
+
+  return SendResponse.success({
+    res,
+    message: "Booking confirmed successfully",
+    data: {
+      bookingId: booking._id.toString()
+    }
+  });
+}
+
+export async function cancelBookingHandler(
+  req: Request<Record<string, never>, Record<string, never>, ConfirmBookingType>,
+  res: Response
+) {
+  const functionName = cancelBookingHandler.name;
+  const { bookingId } = req.body;
+
+  const booking = await findBookingById(bookingId);
+  if (!booking) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Booking not found",
+        DATA_NOT_FOUND,
+        "Booking not found"
+      )
+    });
+  }
+
+  if (booking.status === BookingStatus.CANCELLED) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Booking is already cancelled",
+        BAD_REQUEST,
+        "Booking is already cancelled"
+      )
+    });
+  }
+
+  booking.status = BookingStatus.CANCELLED;
+  await booking.save();
+
+  return SendResponse.success({
+    res,
+    message: "Booking cancelled successfully",
+    data: {
+      bookingId: booking._id.toString()
+    }
+  });
+}
+
+export async function getAllBookingsHandler(req: Request, res: Response) {
+  const functionName = getAllBookingsHandler.name;
+
+  const page = parseInt((req.query.page as string) || "1", 10);
+  const limit = parseInt((req.query.limit as string) || "10", 10);
+
+  const bookings = await findAllBookingsPaginated(page, limit);
+  const totalBookings = await countAllBookings();
+
+  const hasNext = page * limit < totalBookings;
+
+  return SendResponse.success({
+    res,
+    message: "All bookings retrieved successfully",
+    data: {
+      items: bookings.map((booking) => ({ ...booking, id: booking._id.toString() })),
+      currentPage: page,
+      limit,
+      totalItems: totalBookings,
+      totalPages: Math.ceil(totalBookings / limit),
+      hasNext
+    }
+  });
+}
+
+export async function getBookingShortStatsHandler(req: Request, res: Response) {
+  // const functionName = getTopSectionBookingStatsHandler.name;
+
+  const statsRes = await findBookingStats();
+
+  return SendResponse.success({
+    res,
+    message: "Booking stats retrieved successfully",
+    data: {
+      stats: {
+        pending: statsRes[BookingStatus.PENDING] || 0,
+        confirmed: statsRes[BookingStatus.CONFIRMED] || 0,
+        cancelled: statsRes[BookingStatus.CANCELLED] || 0,
+        completed: statsRes[BookingStatus.COMPLETED] || 0
+      }
+    }
+  });
+}
+
+export async function bulkMarkBookingsAsCompletedHandler(req: Request, res: Response) {
+  const functionName = bulkMarkBookingsAsCompletedHandler.name;
+  const { bookingIds } = req.body;
+
+  const bookings = await findBookingsByIds(bookingIds);
+  if (!bookings || bookings.length === 0) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "No bookings found",
+        DATA_NOT_FOUND,
+        "No bookings found"
+      )
+    });
+  }
+
+  for (const booking of bookings) {
+    if (booking.status === BookingStatus.COMPLETED) {
+      continue;
+    }
+
+    booking.status = BookingStatus.COMPLETED;
+    await booking.save();
+  }
+
+  return SendResponse.success({
+    res,
+    message: "Bookings marked as completed successfully",
+    data: {
+      bookingIds: bookings.map((booking) => booking._id.toString())
     }
   });
 }

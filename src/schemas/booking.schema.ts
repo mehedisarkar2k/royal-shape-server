@@ -22,3 +22,17 @@ export const requestBookingSchema = object({
 });
 
 export type RequestBookingType = TypeOf<typeof requestBookingSchema>["body"];
+
+export const confirmBookingSchema = object({
+  body: object({
+    bookingId: string().min(1, "Booking ID is required")
+  })
+});
+export type ConfirmBookingType = TypeOf<typeof confirmBookingSchema>["body"];
+
+export const bulkMarkBookingsSchema = object({
+  body: object({
+    bookingIds: array(string().min(1)).min(1, "At least one booking ID is required")
+  })
+});
+export type BulkMarkBookingsType = TypeOf<typeof bulkMarkBookingsSchema>["body"];

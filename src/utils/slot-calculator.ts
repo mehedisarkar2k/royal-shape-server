@@ -1,4 +1,4 @@
-import { getTimeDifferenceInMinutes } from "./datetime-helper";
+import { getTimeDifferenceInMinutes, parseDateTimeFromDateAndTimeStr } from "./datetime-helper";
 
 interface TimeSlot {
   startTime: string;
@@ -165,4 +165,38 @@ export function calculateAvailableSlots(
   });
 
   return { morning, afternoon, evening };
+}
+
+/**
+ * Check if a requested date and time slot is available
+ */
+export function isSlotAvailable(
+  requestDate: string, // "yyyy-mm-dd"
+  startTime: string, // "h:mm a" e.g. "9:00 AM"
+  endTime: string, // "h:mm a" e.g. "10:30 AM"
+  existingBookings: BookingInfo[]
+): boolean {
+  // Convert requestDate + startTime / endTime into Date objects
+  const requestStartDate = parseDateTimeFromDateAndTimeStr(requestDate, startTime);
+  const requestEndDate = parseDateTimeFromDateAndTimeStr(requestDate, endTime);
+  if (!requestStartDate || !requestEndDate) return false;
+
+  // Check each booking for conflicts
+  for (const booking of existingBookings) {
+    const bookingDate = new Date(booking.bookingDate);
+    const bookingDateStr = bookingDate.toISOString().split("T")[0];
+
+    if (bookingDateStr !== requestDate) continue; // Skip other dates
+
+    const bookingStartDate = parseDateTimeFromDateAndTimeStr(bookingDateStr, booking.startTime); // booking.startTime = "HH:mm"
+    const bookingEndDate = parseDateTimeFromDateAndTimeStr(bookingDateStr, booking.endTime);
+
+    if (!bookingStartDate || !bookingEndDate) continue;
+
+    const isOverlap = requestStartDate < bookingEndDate && requestEndDate > bookingStartDate;
+
+    if (isOverlap) return false;
+  }
+
+  return true;
 }

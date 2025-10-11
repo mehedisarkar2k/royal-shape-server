@@ -7,15 +7,15 @@ import {
   calculateAvailableSlots,
   isValidDate,
   isValidTimeFormat,
-  parseDateTimeFromDateAndTimeStr
+  parseDateTimeFromDateAndTimeStr,
+  isSlotAvailable
 } from "../utils";
 import { RequestBookingType } from "../schemas";
 import { findBranchById } from "../services/branch.service";
 import { createBooking, findBookingsByBranchAndDate } from "../services/booking.service";
 import { findServicesByIds } from "../services/business-service.service";
-import { BAD_REQUEST, BookingServiceType, BookingStatus, DATA_NOT_FOUND } from "../constants";
+import { BAD_REQUEST, BookingServiceType, BookingStatus, CONFLICT_ERROR, DATA_NOT_FOUND } from "../constants";
 import { createCustomer, findCustomerByEmail } from "../services/customer.service";
-import { getAustralianDateTime } from "../utils/timezone";
 
 export async function getAvailableSlotsHandler(req: Request, res: Response) {
   const functionName = getAvailableSlotsHandler.name;
@@ -44,7 +44,9 @@ export async function getAvailableSlotsHandler(req: Request, res: Response) {
     }
 
     // Parse serviceIds from query parameter
-    const serviceIdArray = Array.isArray(serviceIds) ? (serviceIds as string[]) : (serviceIds as string).split(",");
+    const serviceIdArray = Array.isArray(serviceIds)
+      ? (serviceIds as string[])
+      : (serviceIds as string).replace(/\s+/g, "").split(",");
 
     // Parse date
     const bookingDate = new Date(date as string);
@@ -150,6 +152,21 @@ export async function requestBookingHandler(
     });
   }
 
+  const requestDate = new Date(date as string);
+  const existingBookings = await findBookingsByBranchAndDate(branchId as string, requestDate);
+  if (!isSlotAvailable(date, startTime, endTime, existingBookings)) {
+    return SendErrorResponse.conflict({
+      res,
+      message: "Requested time slot is not available",
+      data: {
+        clientError: {
+          ...CONFLICT_ERROR,
+          message: "Requested time slot is not available. If you believe this is an error, please contact support."
+        }
+      }
+    });
+  }
+
   const serviceIdArray = services || [];
   const comboId = combo || null;
 
@@ -196,7 +213,7 @@ export async function requestBookingHandler(
   }
 
   const bookingDate = parseDateTimeFromDateAndTimeStr(date, startTime);
-  console.log(bookingDate);
+  // console.log(bookingDate);
   if (!bookingDate) {
     return SendErrorResponse.badRequest({
       res,

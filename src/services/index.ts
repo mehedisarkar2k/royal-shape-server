@@ -6,3 +6,4 @@ export * from "./branch.service";
 export * from "./business-service.service";
 export * from "./booking.service";
 export * from "./customer.service";
+export * from "./employee.service";

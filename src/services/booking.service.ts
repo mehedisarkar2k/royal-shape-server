@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { customAlphabet } from "nanoid";
 import { Booking, BookingModel } from "../model";
 
 export function createBooking(data: Booking) {
@@ -64,7 +65,6 @@ export async function findBookingsByIds(bookingIds: string[]) {
 }
 
 export const generateUniqueShortBookingId = async (): Promise<string> => {
-  const { customAlphabet } = await import("nanoid");
   const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const size = 8;
   const nanoid = customAlphabet(alphabet, size);

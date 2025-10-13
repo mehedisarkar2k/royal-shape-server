@@ -19,3 +19,7 @@ export async function findServicesByCategoryId(categoryId: string) {
 export async function findServicesByIds(serviceIds: string[]) {
   return ServiceModel.find({ _id: { $in: serviceIds } });
 }
+
+export async function findServiceCategoryById(categoryId: string) {
+  return ServiceCategoryModel.findById(categoryId);
+}

@@ -7,6 +7,7 @@ import {
   getAllBookingsHandler,
   getAvailableSlotsHandler,
   getBookingShortStatsHandler,
+  getSingleBookingHandler,
   manualCreateBookingHandler,
   requestBookingHandler
 } from "../controllers";
@@ -25,7 +26,7 @@ router.post(
 );
 router.put("/confirm", requireUser, validateResource(confirmBookingSchema), asyncWrapper(confirmBookingHandler));
 router.put("/cancel", requireUser, validateResource(confirmBookingSchema), asyncWrapper(cancelBookingHandler));
-router.get("/all", asyncWrapper(getAllBookingsHandler));
+router.get("/all", requireUser, asyncWrapper(getAllBookingsHandler));
 router.get("/short-stats", requireUser, asyncWrapper(getBookingShortStatsHandler));
 router.get(
   "/bulk-mark-completed",
@@ -33,5 +34,6 @@ router.get(
   validateResource(bulkMarkBookingsSchema),
   asyncWrapper(bulkMarkBookingsAsCompletedHandler)
 );
+router.get("/single/:bookingId", requireUser, asyncWrapper(getSingleBookingHandler));
 
 export default router;

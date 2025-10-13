@@ -19,3 +19,7 @@ export async function findAllCustomersPaginated(page: number, limit: number) {
 export async function countAllCustomers() {
   return CustomerModel.countDocuments({});
 }
+
+export async function findCustomerById(customerId: string) {
+  return CustomerModel.findById(customerId);
+}

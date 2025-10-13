@@ -3147,6 +3147,11 @@ multer@1.4.5-lts.2:
     type-is "^1.6.4"
     xtend "^4.0.0"
 
+nanoid@^5.1.6:
+  version "5.1.6"
+  resolved "https://registry.yarnpkg.com/nanoid/-/nanoid-5.1.6.tgz#30363f664797e7d40429f6c16946d6bd7a3f26c9"
+  integrity sha512-c7+7RQ+dMB5dPwwCp4ee1/iV/q2P6aK1mTZcfr1BTuVlyW9hJYiMPybJCcnBlQtuSmTIWNeazm/zqNoZSSElBg==
+
 napi-postinstall@^0.1.1:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/napi-postinstall/-/napi-postinstall-0.1.1.tgz#bce16aae52c3b43b5a33584938da75c2f2a53c26"

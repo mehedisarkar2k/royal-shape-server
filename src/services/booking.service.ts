@@ -62,3 +62,20 @@ export async function findBookingsByIds(bookingIds: string[]) {
     _id: { $in: bookingObjectIds }
   });
 }
+
+export const generateUniqueShortBookingId = async (): Promise<string> => {
+  const { customAlphabet } = await import("nanoid");
+  const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const size = 8;
+  const nanoid = customAlphabet(alphabet, size);
+
+  let id: string;
+  let exists = true;
+
+  while (exists) {
+    id = nanoid();
+    exists = !!(await BookingModel.exists({ shortId: id }));
+  }
+
+  return id!;
+};

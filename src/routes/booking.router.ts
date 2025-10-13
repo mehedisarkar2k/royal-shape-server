@@ -25,7 +25,7 @@ router.post(
 );
 router.put("/confirm", requireUser, validateResource(confirmBookingSchema), asyncWrapper(confirmBookingHandler));
 router.put("/cancel", requireUser, validateResource(confirmBookingSchema), asyncWrapper(cancelBookingHandler));
-router.get("/all", requireUser, asyncWrapper(getAllBookingsHandler));
+router.get("/all", asyncWrapper(getAllBookingsHandler));
 router.get("/short-stats", requireUser, asyncWrapper(getBookingShortStatsHandler));
 router.get(
   "/bulk-mark-completed",

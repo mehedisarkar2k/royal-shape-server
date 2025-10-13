@@ -20,7 +20,8 @@ import {
   findBookingById,
   findBookingsByBranchAndDate,
   findBookingsByIds,
-  findBookingStats
+  findBookingStats,
+  generateUniqueShortBookingId
 } from "../services/booking.service";
 import { findServicesByIds } from "../services/business-service.service";
 import {
@@ -29,9 +30,10 @@ import {
   BookingServiceType,
   BookingStatus,
   CONFLICT_ERROR,
-  DATA_NOT_FOUND
+  DATA_NOT_FOUND,
+  UNEXPECTED_ERROR
 } from "../constants";
-import { createCustomer, findCustomerByEmail } from "../services/customer.service";
+import { createCustomer, findCustomerByEmail, findCustomerById } from "../services/customer.service";
 
 const buildErrorPayload = (
   endpoint: string,
@@ -263,6 +265,7 @@ export async function requestBookingHandler(
   }
 
   const newBooking = await createBooking({
+    shortId: await generateUniqueShortBookingId(),
     branchId,
     serviceIds: serviceIdArray,
     serviceType: serviceIdArray.length > 0 ? BookingServiceType.SPECIFIC_SERVICE : BookingServiceType.COMBO,
@@ -425,6 +428,7 @@ export async function manualCreateBookingHandler(
   }
 
   const newBooking = await createBooking({
+    shortId: await generateUniqueShortBookingId(),
     branchId,
     serviceIds: serviceIdArray,
     serviceType: serviceIdArray.length > 0 ? BookingServiceType.SPECIFIC_SERVICE : BookingServiceType.COMBO,
@@ -569,11 +573,53 @@ export async function getAllBookingsHandler(req: Request, res: Response) {
 
   const hasNext = page * limit < totalBookings;
 
+  const finalBookings = await Promise.all(
+    bookings.map(async (booking) => {
+      const customerInfo = await findCustomerById(booking.customerId);
+      const serviceInfo = await findServicesByIds(booking.serviceIds || []);
+      const branchInfo = await findBranchById(booking.branchId);
+      if (!customerInfo || !branchInfo || serviceInfo.length === 0) {
+        return SendErrorResponse.internalServer({
+          res,
+          ...buildErrorPayload(
+            req.originalUrl,
+            functionName,
+            req.method,
+            "Failed to retrieve booking details",
+            UNEXPECTED_ERROR,
+            "Failed to retrieve booking details"
+          )
+        });
+      }
+      return {
+        id: booking._id.toString(),
+        shortId: booking.shortId,
+        branch: {
+          id: branchInfo?._id.toString(),
+          name: branchInfo.name
+        },
+        customer: {
+          id: customerInfo._id.toString(),
+          name: `${customerInfo.firstName} ${customerInfo.lastName}`.trim()
+        },
+        services: serviceInfo.map((service) => ({
+          id: service._id.toString(),
+          name: service.name
+        })),
+        price: booking.totalPrice,
+        date: booking.bookingDate.toISOString().split("T")[0],
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        status: booking.status
+      };
+    })
+  );
+
   return SendResponse.success({
     res,
     message: "All bookings retrieved successfully",
     data: {
-      items: bookings.map((booking) => ({ ...booking, id: booking._id.toString() })),
+      items: finalBookings,
       currentPage: page,
       limit,
       totalItems: totalBookings,
@@ -593,9 +639,13 @@ export async function getBookingShortStatsHandler(req: Request, res: Response) {
     message: "Booking stats retrieved successfully",
     data: {
       stats: {
+        total:
+          (statsRes[BookingStatus.PENDING] || 0) +
+          (statsRes[BookingStatus.CONFIRMED] || 0) +
+          (statsRes[BookingStatus.CANCELLED] || 0) +
+          (statsRes[BookingStatus.COMPLETED] || 0),
         pending: statsRes[BookingStatus.PENDING] || 0,
         confirmed: statsRes[BookingStatus.CONFIRMED] || 0,
-        cancelled: statsRes[BookingStatus.CANCELLED] || 0,
         completed: statsRes[BookingStatus.COMPLETED] || 0
       }
     }

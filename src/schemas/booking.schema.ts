@@ -3,7 +3,7 @@ import { array, object, string, TypeOf } from "zod";
 export const requestBookingSchema = object({
   body: object({
     branchId: string().min(1, "Branch ID is required"),
-    services: array(string().min(1)).min(1, "At least one service is required").optional().nullable(),
+    services: array(string().min(1)).min(1, "At least one service id is required").optional().nullable(),
     combo: string().min(1).optional().nullable(),
     date: string().min(1, "Date is required"),
     startTime: string().min(1, "Start time is required"),

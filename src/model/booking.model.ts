@@ -4,6 +4,9 @@ import { BookingServiceType, BookingStatus } from "../constants";
 @ModelOptions({ schemaOptions: { collection: "bookings", timestamps: true } })
 export class Booking {
   @Prop({ required: true, type: String })
+  shortId: string;
+
+  @Prop({ required: true, type: String })
   customerId: string;
 
   @Prop({ required: true, type: String, enum: BookingServiceType })

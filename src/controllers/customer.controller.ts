@@ -89,7 +89,8 @@ export async function getAllCustomersHandler(req: Request, res: Response) {
     if (!customer.bookings || customer.bookings.length === 0) {
       return {
         id: customer._id.toString(),
-        name: `${customer.firstName} ${customer.lastName || ""}`.trim(),
+        firstName: customer.firstName.trim(),
+        lastName: (customer.lastName || "").trim(),
         email: customer.email,
         description: customer.description,
         phone: customer.phone,
@@ -122,7 +123,8 @@ export async function getAllCustomersHandler(req: Request, res: Response) {
         : 0;
     return {
       id: customer._id.toString(),
-      name: `${customer.firstName} ${customer.lastName || ""}`.trim(),
+      firstName: customer.firstName.trim(),
+      lastName: (customer.lastName || "").trim(),
       email: customer.email,
       description: customer.description,
       phone: customer.phone,

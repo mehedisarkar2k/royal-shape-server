@@ -1,0 +1,89 @@
+version: "3.8"
+
+services:
+  # Royal Shape Backend Service
+  royal-shape-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: royal-shape-backend
+    restart: unless-stopped
+    ports:
+      - "8070:8070"
+    environment:
+      # System
+      PROJECT_NAME: ${PROJECT_NAME}
+      ENVIRONMENT: ${ENVIRONMENT}
+      PORT: ${PORT}
+      SERVER_BASE_URL: ${SERVER_BASE_URL}
+
+      # Database
+      MONGODB_URI: ${MONGODB_URI}
+
+      # SMTP
+      SMTP_EMAIL: ${SMTP_EMAIL}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+
+      # Firebase
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+
+      # Auth Tokens
+      ACCESS_TOKEN_PUBLIC_KEY: ${ACCESS_TOKEN_PUBLIC_KEY}
+      ACCESS_TOKEN_PRIVATE_KEY: ${ACCESS_TOKEN_PRIVATE_KEY}
+      ACCESS_TOKEN_EXPIRY: ${ACCESS_TOKEN_EXPIRY}
+      REFRESH_TOKEN_PUBLIC_KEY: ${REFRESH_TOKEN_PUBLIC_KEY}
+      REFRESH_TOKEN_PRIVATE_KEY: ${REFRESH_TOKEN_PRIVATE_KEY}
+      REFRESH_TOKEN_EXPIRY: ${REFRESH_TOKEN_EXPIRY}
+
+      # Cloudflare R2
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
+      R2_BUCKET: ${R2_BUCKET}
+      R2_ENDPOINT: ${R2_ENDPOINT}
+      R2_PUBLIC_BASE_URL: ${R2_PUBLIC_BASE_URL}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+      R2_TOKEN: ${R2_TOKEN}
+
+    volumes:
+      # Persistent storage for uploads
+      - uploads_data:/app/uploads
+      # Persistent storage for logs
+      - logs_data:/app/logs
+
+    networks:
+      - royal-shape-network
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:8070/', (r) => {if (r.statusCode !== 200) throw new Error('Health check failed')})"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Resource limits (adjust based on your droplet size)
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+volumes:
+  uploads_data:
+    driver: local
+  logs_data:
+    driver: local
+
+networks:
+  royal-shape-network:
+    driver: bridge

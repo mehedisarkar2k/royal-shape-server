@@ -58,11 +58,11 @@ backup-volumes: ## Backup Docker volumes
 	@docker run --rm -v royal-shape-backend_logs_data:/data -v $(PWD)/backups:/backup alpine tar czf /backup/logs-$(shell date +%Y%m%d-%H%M%S).tar.gz -C /data .
 	@echo "✓ Backups created in ./backups/"
 
-prod-env: ## Copy .env to .env.production (for first time setup)
-	@if [ ! -f .env.production ]; then \
-		cp .env .env.production; \
-		echo "✓ Created .env.production from .env"; \
-		echo "⚠️  Please review and update .env.production with production values"; \
+prod-env: ## Copy .env to .env (for first time setup)
+	@if [ ! -f .env ]; then \
+		cp .env .env; \
+		echo "✓ Created .env from .env"; \
+		echo "⚠️  Please review and update .env with production values"; \
 	else \
-		echo "⚠️  .env.production already exists"; \
+		echo "⚠️  .env already exists"; \
 	fi

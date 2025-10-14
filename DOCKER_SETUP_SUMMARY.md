@@ -146,8 +146,8 @@ git clone <your-repo> /opt/royal-shape-backend
 cd /opt/royal-shape-backend
 
 # 3. Configure environment
-cp .env.production.template .env.production
-nano .env.production  # Fill in your values
+cp .env.production.template .env
+nano .env  # Fill in your values
 
 # 4. Deploy
 ./deploy.sh
@@ -275,7 +275,7 @@ nano .env.production  # Fill in your values
 
 2. **Prepare Production Environment**
 
-   - Create .env.production with real values
+   - Create .env with real values
    - Ensure all external services are accessible
    - Test database connection
    - Verify Firebase credentials
@@ -342,7 +342,7 @@ docker-compose logs
 
 ```bash
 # Check MongoDB Atlas IP whitelist
-# Verify MONGODB_URI in .env.production
+# Verify MONGODB_URI in .env
 # Test from container: docker-compose exec royal-shape-backend sh
 ```
 

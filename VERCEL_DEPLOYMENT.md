@@ -102,7 +102,7 @@ After deployment, our API endpoints will be:
 ├── vercel.json           # Vercel configuration
 ├── api/
 │   └── index.ts         # Vercel serverless function entry point
-├── .env.production      # Production environment variables reference
+├── .env      # Production environment variables reference
 └── VERCEL_DEPLOYMENT.md # This deployment guide
 ```
 

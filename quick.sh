@@ -33,8 +33,8 @@ show_help() {
 }
 
 check_env() {
-    if [ ! -f .env.production ]; then
-        echo -e "${YELLOW}Warning: .env.production not found${NC}"
+    if [ ! -f .env ]; then
+        echo -e "${YELLOW}Warning: .env not found${NC}"
         echo "Run: make prod-env to create from .env"
     fi
 }

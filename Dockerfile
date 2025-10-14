@@ -43,6 +43,9 @@ RUN yarn install --frozen-lockfile --production && \
 # Copy built application from builder stage
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 
+# Copy compiled config folder (node-config expects it at /app/config)
+COPY --from=builder --chown=nodejs:nodejs /app/dist/config ./config
+
 # Create uploads directory with proper permissions
 RUN mkdir -p /app/uploads && \
     chown -R nodejs:nodejs /app/uploads

@@ -14,16 +14,18 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Check if .env.production exists
-if [ ! -f .env.production ]; then
-    echo -e "${RED}Error: .env.production file not found!${NC}"
-    echo "Please create .env.production with your production environment variables."
+# Check if .env exists
+if [ ! -f .env ]; then
+    echo -e "${RED}Error: .env file not found!${NC}"
+    echo "Please create .env with your production environment variables."
     echo "You can use .env.production.template as a reference."
     exit 1
 fi
 
-# Load production environment
-export $(cat .env.production | grep -v '^#' | xargs)
+# Load production environment (properly handle multi-line values)
+set -a
+source .env
+set +a
 
 echo -e "${GREEN}✓${NC} Environment variables loaded"
 

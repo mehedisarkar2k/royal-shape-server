@@ -86,8 +86,8 @@ git clone https://github.com/trizen-solutions/royal-shape-backend.git .
 Create production environment file:
 
 ```bash
-cp .env.production.template .env.production
-nano .env.production
+cp .env.production.template .env
+nano .env
 ```
 
 Update the following values:
@@ -276,7 +276,7 @@ docker run --rm \
 
 ## 🔐 Security Best Practices
 
-1. **Environment Variables**: Never commit .env.production to git
+1. **Environment Variables**: Never commit .env to git
 2. **Firewall**: Only open necessary ports (80, 443, 8070, 22)
 3. **SSL**: Always use HTTPS in production (use setup-nginx.sh)
 4. **Updates**: Keep Docker and system packages updated
@@ -370,7 +370,7 @@ deploy:
 
 ### Enable Production Optimizations
 
-Ensure in `.env.production`:
+Ensure in `.env`:
 
 ```env
 NODE_ENV=production
@@ -396,7 +396,7 @@ For issues or questions:
 1. Check the troubleshooting section above
 2. Review application logs: `docker-compose logs`
 3. Check system resources: `docker stats`
-4. Review environment variables: `.env.production`
+4. Review environment variables: `.env`
 
 ---
 
@@ -404,7 +404,7 @@ For issues or questions:
 
 - [ ] Server setup completed (Docker, Docker Compose installed)
 - [ ] Repository cloned to `/opt/royal-shape-backend`
-- [ ] `.env.production` created with correct values
+- [ ] `.env` created with correct values
 - [ ] MongoDB Atlas accessible from droplet IP
 - [ ] Firebase credentials configured
 - [ ] R2 storage credentials configured

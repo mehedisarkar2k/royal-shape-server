@@ -70,10 +70,10 @@ git clone https://github.com/trizen-solutions/royal-shape-backend.git .
 
 ```bash
 # Copy template
-cp .env.production.template .env.production
+cp .env.production.template .env
 
 # Edit with production values
-nano .env.production
+nano .env
 ```
 
 **Critical Variables to Update:**
@@ -183,9 +183,9 @@ docker stats royal-shape-backend
 - [ ] Configure fail2ban (optional)
 - [ ] Enable automatic security updates
 - [ ] Review firewall rules
-- [ ] Ensure .env.production is not readable by others
+- [ ] Ensure .env is not readable by others
   ```bash
-  chmod 600 .env.production
+  chmod 600 .env
   ```
 
 ### 9. Monitoring Setup

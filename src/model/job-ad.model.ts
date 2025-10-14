@@ -1,4 +1,4 @@
-import { DocumentType, getModelForClass, ModelOptions, Prop } from "@typegoose/typegoose";
+import { DocumentType, getModelForClass, ModelOptions, Prop, Severity } from "@typegoose/typegoose";
 import { EmploymentType, JobAdStatus } from "../constants";
 
 class BranchRef {
@@ -23,7 +23,7 @@ class JobApplication {
   coverLetterLink?: string | null;
 }
 
-@ModelOptions({ schemaOptions: { collection: "job_ads", timestamps: true } })
+@ModelOptions({ schemaOptions: { collection: "job_ads", timestamps: true }, options: { allowMixed: Severity.ALLOW } })
 export class JobAd {
   @Prop({ required: true, type: String })
   title: string;

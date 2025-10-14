@@ -1,8 +1,11 @@
-import { ModelOptions, Prop } from "@typegoose/typegoose";
+import { DocumentType, getModelForClass, ModelOptions, Prop } from "@typegoose/typegoose";
 import { BookingServiceType, BookingStatus } from "../constants";
 
 @ModelOptions({ schemaOptions: { collection: "bookings", timestamps: true } })
 export class Booking {
+  @Prop({ required: true, type: String })
+  shortId: string;
+
   @Prop({ required: true, type: String })
   customerId: string;
 
@@ -18,8 +21,17 @@ export class Booking {
   @Prop({ required: true, type: String })
   branchId: string;
 
+  @Prop({ required: true, type: String })
+  branchName: string;
+
   @Prop({ required: true, type: Date })
   bookingDate: Date;
+
+  @Prop({ required: true, type: String })
+  startTime: string;
+
+  @Prop({ required: true, type: String })
+  endTime: string;
 
   @Prop({ required: true, type: Number })
   totalPrice: number;
@@ -33,3 +45,6 @@ export class Booking {
   @Prop({ required: true, type: String, enum: BookingStatus })
   status: BookingStatus;
 }
+
+export const BookingModel = getModelForClass(Booking);
+export type BookingDocumentType = DocumentType<Booking>;

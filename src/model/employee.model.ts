@@ -21,14 +21,17 @@ export class Employee {
   @Prop({ required: true, type: String, unique: true })
   email: string;
 
-  @Prop({ required: true, type: String })
-  address: string;
+  @Prop({ required: false, type: String, default: null })
+  profileImage?: string | null;
+
+  @Prop({ required: false, type: String, default: null })
+  address?: string | null;
 
   @Prop({ required: true, type: String })
   jobRole: string;
 
-  @Prop({ required: true, type: String })
-  department: string;
+  @Prop({ required: false, type: String, default: null })
+  department?: string | null;
 
   @Prop({ required: true, type: BranchRef, _id: false })
   branchInfo: BranchRef;

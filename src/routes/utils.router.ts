@@ -6,6 +6,6 @@ import { uploadImageHandler } from "../controllers";
 
 const router = Router();
 
-router.post("/upload-image", requireUser, upload.single("document"), asyncWrapper(uploadImageHandler));
+router.post("/upload-image", requireUser, upload.single("image"), asyncWrapper(uploadImageHandler));
 
 export default router;

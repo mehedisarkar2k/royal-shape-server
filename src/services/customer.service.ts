@@ -87,3 +87,7 @@ export async function findAllCustomersWithBookingDetailsPaginated(page: number, 
   const results = await CustomerModel.aggregate(pipeline);
   return results;
 }
+
+export async function deleteCustomerById(customerId: string) {
+  return CustomerModel.findByIdAndDelete(customerId);
+}

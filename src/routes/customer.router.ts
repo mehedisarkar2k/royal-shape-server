@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireUser, validateResource } from "../middleware";
 import {
   createCustomerHandler,
+  deleteCustomerHandler,
   getAllCustomersHandler,
   getSingleCustomerHandler,
   updateCustomerHandler
@@ -21,5 +22,6 @@ router.put(
   validateResource(updateCustomerSchema),
   asyncWrapper(updateCustomerHandler)
 );
+router.delete("/delete/:customerId", requireUser, asyncWrapper(deleteCustomerHandler));
 
 export default router;

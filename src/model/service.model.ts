@@ -1,4 +1,4 @@
-import { DocumentType, getModelForClass, ModelOptions, Prop } from "@typegoose/typegoose";
+import { DocumentType, getModelForClass, ModelOptions, Prop, Severity } from "@typegoose/typegoose";
 import { ServiceStatus } from "../constants";
 
 class BranchRef {
@@ -9,7 +9,7 @@ class BranchRef {
   branchName: string;
 }
 
-@ModelOptions({ schemaOptions: { collection: "services", timestamps: true } })
+@ModelOptions({ schemaOptions: { collection: "services", timestamps: true }, options: { allowMixed: Severity.ALLOW } })
 export class Service {
   @Prop({ required: true, type: String })
   name: string;

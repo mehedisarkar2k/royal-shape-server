@@ -7,3 +7,4 @@ export { default as asyncWrapper } from "./async-warpper";
 export { default as multerUpload } from "./multer";
 export * from "./send-email";
 export * from "./datetime-helper";
+export * from "./slot-calculator";

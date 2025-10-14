@@ -37,7 +37,7 @@ fi
 echo -e "${GREEN}✓${NC} Docker is installed"
 
 # Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+if ! command -v docker compose &> /dev/null && ! docker compose version &> /dev/null; then
     echo -e "${RED}Error: Docker Compose is not installed!${NC}"
     echo "Please install Docker Compose first"
     exit 1
@@ -48,7 +48,7 @@ echo -e "${GREEN}✓${NC} Docker Compose is installed"
 # Stop existing containers
 echo ""
 echo "Stopping existing containers..."
-docker-compose down || true
+docker compose down || true
 
 # Remove old images (optional, comment out if you want to keep old images)
 echo ""
@@ -58,12 +58,12 @@ docker image prune -f
 # Build the Docker image
 echo ""
 echo "Building Docker image..."
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Start the containers
 echo ""
 echo "Starting containers..."
-docker-compose up -d
+docker compose up -d
 
 # Wait for the service to be healthy
 echo ""
@@ -82,7 +82,7 @@ if [ "$(docker ps -q -f name=royal-shape-backend)" ]; then
     # Show logs
     echo ""
     echo "Recent logs:"
-    docker-compose logs --tail=50
+    docker compose logs --tail=50
 
     echo ""
     echo -e "${GREEN}========================================${NC}"
@@ -92,14 +92,14 @@ if [ "$(docker ps -q -f name=royal-shape-backend)" ]; then
     echo "Your API is now running at: ${SERVER_BASE_URL}"
     echo ""
     echo "Useful commands:"
-    echo "  View logs:          docker-compose logs -f"
-    echo "  Restart:            docker-compose restart"
-    echo "  Stop:               docker-compose down"
-    echo "  View status:        docker-compose ps"
+    echo "  View logs:          docker compose logs -f"
+    echo "  Restart:            docker compose restart"
+    echo "  Stop:               docker compose down"
+    echo "  View status:        docker compose ps"
 else
     echo -e "${RED}✗ Container failed to start${NC}"
     echo ""
     echo "Showing error logs:"
-    docker-compose logs
+    docker compose logs
     exit 1
 fi

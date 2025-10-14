@@ -21,6 +21,9 @@ export class Booking {
   @Prop({ required: true, type: String })
   branchId: string;
 
+  @Prop({ required: true, type: String })
+  branchName: string;
+
   @Prop({ required: true, type: Date })
   bookingDate: Date;
 

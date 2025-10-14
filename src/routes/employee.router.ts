@@ -8,5 +8,6 @@ const router = Router();
 
 router.post("/create", requireUser, validateResource(addEmployeeSchema), asyncWrapper(addEmployeeHandler));
 router.get("/all", requireUser, asyncWrapper(getAllEmployeesHandler));
+// router.get("/single/:employeeId", requireUser, asyncWrapper(getSingleEmployeeHandler));
 
 export default router;

@@ -11,7 +11,7 @@ import {
   parseDateTimeFromDateAndTimeStr,
   isSlotAvailable
 } from "../utils";
-import { ConfirmBookingType, RequestBookingType } from "../schemas";
+import { ConfirmBookingType, RequestBookingType, UpdateBookingType } from "../schemas";
 import { findBranchById } from "../services/branch.service";
 import {
   countAllBookings,
@@ -223,6 +223,21 @@ export async function requestBookingHandler(
     });
   }
 
+  const branch = await findBranchById(branchId);
+  if (!branch) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Branch not found",
+        DATA_NOT_FOUND,
+        "Branch not found"
+      )
+    });
+  }
+
   // find combos if comboIds are provided
 
   // * create the customer in DB if not exists
@@ -267,6 +282,7 @@ export async function requestBookingHandler(
   const newBooking = await createBooking({
     shortId: await generateUniqueShortBookingId(),
     branchId,
+    branchName: branch.name,
     serviceIds: serviceIdArray,
     serviceType: serviceIdArray.length > 0 ? BookingServiceType.SPECIFIC_SERVICE : BookingServiceType.COMBO,
     comboId,
@@ -385,6 +401,21 @@ export async function manualCreateBookingHandler(
     });
   }
 
+  const branch = await findBranchById(branchId);
+  if (!branch) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Branch not found",
+        DATA_NOT_FOUND,
+        "Branch not found"
+      )
+    });
+  }
+
   // find combos if comboIds are provided
 
   // * create the customer in DB if not exists
@@ -430,6 +461,7 @@ export async function manualCreateBookingHandler(
   const newBooking = await createBooking({
     shortId: await generateUniqueShortBookingId(),
     branchId,
+    branchName: branch.name,
     serviceIds: serviceIdArray,
     serviceType: serviceIdArray.length > 0 ? BookingServiceType.SPECIFIC_SERVICE : BookingServiceType.COMBO,
     comboId,
@@ -470,20 +502,6 @@ export async function confirmBookingHandler(
         "Booking not found",
         DATA_NOT_FOUND,
         "Booking not found"
-      )
-    });
-  }
-
-  if (booking.status === BookingStatus.CANCELLED) {
-    return SendErrorResponse.badRequest({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "Cannot confirm a cancelled booking",
-        BAD_REQUEST,
-        "Cannot confirm a cancelled booking"
       )
     });
   }
@@ -556,6 +574,54 @@ export async function cancelBookingHandler(
   return SendResponse.success({
     res,
     message: "Booking cancelled successfully",
+    data: {
+      bookingId: booking._id.toString()
+    }
+  });
+}
+
+export async function markBookingAsCompletedHandler(
+  req: Request<Record<string, never>, Record<string, never>, ConfirmBookingType>,
+  res: Response
+) {
+  const functionName = markBookingAsCompletedHandler.name;
+  const { bookingId } = req.body;
+
+  const booking = await findBookingById(bookingId);
+  if (!booking) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Booking not found",
+        DATA_NOT_FOUND,
+        "Booking not found"
+      )
+    });
+  }
+
+  if (booking.status === BookingStatus.COMPLETED) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Booking is already completed",
+        BAD_REQUEST,
+        "Booking is already completed"
+      )
+    });
+  }
+
+  booking.status = BookingStatus.COMPLETED;
+  await booking.save();
+
+  return SendResponse.success({
+    res,
+    message: "Booking marked as completed successfully",
     data: {
       bookingId: booking._id.toString()
     }
@@ -775,6 +841,207 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
     message: "Booking retrieved successfully",
     data: {
       booking: formattedBooking
+    }
+  });
+}
+
+export async function updateBookingHandler(
+  req: Request<Record<string, never>, Record<string, never>, UpdateBookingType>,
+  res: Response
+) {
+  const functionName = updateBookingHandler.name;
+  const { bookingId } = req.params;
+  const data = req.body;
+
+  if (!data.services && !data.combo) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "At least one service or combo is required",
+        BAD_REQUEST,
+        "At least one service or combo is required"
+      )
+    });
+  }
+
+  if (data.services?.length === 0) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "At least one service is required",
+        BAD_REQUEST,
+        "At least one service is required"
+      )
+    });
+  }
+
+  if (data.date && !isValidDate(data.date)) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Invalid date format",
+        BAD_REQUEST,
+        "Invalid date format"
+      )
+    });
+  }
+
+  if ((data.startTime && !isValidTimeFormat(data.startTime)) || (data.endTime && !isValidTimeFormat(data.endTime))) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Invalid time format",
+        BAD_REQUEST,
+        "Invalid time format"
+      )
+    });
+  }
+
+  const booking = await findBookingById(bookingId);
+  if (!booking) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Booking not found",
+        DATA_NOT_FOUND,
+        "Booking not found"
+      )
+    });
+  }
+
+  // recalculate total price
+  const servicesForBooking = await findServicesByIds(booking.serviceIds || []);
+  if (servicesForBooking.length === 0) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "No services found for booking",
+        DATA_NOT_FOUND,
+        "No services found for booking"
+      )
+    });
+  }
+  if (booking.serviceIds && booking.serviceIds.length !== servicesForBooking.length) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Some services not found",
+        DATA_NOT_FOUND,
+        "Some services not found"
+      )
+    });
+  }
+  const updatedTotalPrice = servicesForBooking.reduce((sum, service) => sum + service.price, 0);
+
+  // check slot availability
+  if (
+    data.date !== booking.bookingDate.toISOString().split("T")[0] ||
+    data.startTime !== booking.startTime ||
+    data.endTime !== booking.endTime
+  ) {
+    const requestDate = new Date(data.date as string);
+    const existingBookings = await findBookingsByBranchAndDate(data.branchId as string, requestDate);
+    if (!isSlotAvailable(data.date, data.startTime, data.endTime, existingBookings)) {
+      return SendErrorResponse.conflict({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Requested time slot is not available",
+          CONFLICT_ERROR,
+          "Requested time slot is not available."
+        )
+      });
+    }
+  }
+
+  booking.branchId = data.branchId || booking.branchId;
+
+  if (data.services) {
+    booking.serviceIds = data.services;
+  }
+
+  if (data.combo) {
+    booking.comboId = data.combo;
+  }
+
+  const bookingDate = parseDateTimeFromDateAndTimeStr(data.date, data.startTime);
+  if (!bookingDate) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Invalid booking date",
+        BAD_REQUEST,
+        "Invalid booking date"
+      )
+    });
+  }
+
+  booking.bookingDate = bookingDate;
+  booking.startTime = data.startTime;
+  booking.endTime = data.endTime;
+  booking.notes = data.customerInfo?.specialNotes || booking.notes || null;
+  booking.totalPrice = updatedTotalPrice;
+  booking.status = data.status;
+
+  await booking.save();
+
+  if (data.customerInfo) {
+    const customer = await findCustomerById(booking.customerId);
+    if (!customer) {
+      return SendErrorResponse.notFound({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Customer not found",
+          DATA_NOT_FOUND,
+          "Customer not found"
+        )
+      });
+    }
+    customer.firstName = data.customerInfo.firstName || customer.firstName;
+    customer.lastName = data.customerInfo.lastName || customer.lastName;
+    // customer.email = data.customerInfo.email || customer.email;
+    // customer.phone = {
+    //   countryCode: data.customerInfo.phone.countryCode || customer.phone.countryCode,
+    //   number: data.customerInfo.phone.number || customer.phone.number
+    // };
+    customer.description = data.customerInfo.specialNotes || customer.description || "";
+    await customer.save();
+  }
+
+  return SendResponse.success({
+    res,
+    message: "Booking updated successfully",
+    data: {
+      bookingId: booking._id.toString()
     }
   });
 }

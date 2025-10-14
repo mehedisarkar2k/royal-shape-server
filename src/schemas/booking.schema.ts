@@ -1,4 +1,5 @@
-import { array, object, string, TypeOf } from "zod";
+import { array, nativeEnum, object, string, TypeOf } from "zod";
+import { BookingStatus } from "../constants";
 
 export const requestBookingSchema = object({
   body: object({
@@ -36,3 +37,26 @@ export const bulkMarkBookingsSchema = object({
   })
 });
 export type BulkMarkBookingsType = TypeOf<typeof bulkMarkBookingsSchema>["body"];
+
+export const updateBookingSchema = object({
+  body: object({
+    branchId: string().min(1, "Branch ID is required"),
+    services: array(string().min(1)).min(1, "At least one service id is required").optional().nullable(),
+    combo: string().min(1).optional().nullable(),
+    date: string().min(1, "Date is required"),
+    startTime: string().min(1, "Start time is required"),
+    endTime: string().min(1, "End time is required"),
+    customerInfo: object({
+      firstName: string().min(1, "First name is required"),
+      lastName: string().optional().nullable(),
+      email: string().email("Invalid email"),
+      phone: object({
+        countryCode: string().min(1, "Country code is required"),
+        number: string().min(1, "Phone number is required")
+      }),
+      specialNotes: string().optional().nullable()
+    }),
+    status: nativeEnum(BookingStatus, { required_error: "Status is required" })
+  })
+});
+export type UpdateBookingType = TypeOf<typeof updateBookingSchema>["body"];

@@ -9,10 +9,12 @@ import {
   getBookingShortStatsHandler,
   getSingleBookingHandler,
   manualCreateBookingHandler,
-  requestBookingHandler
+  markBookingAsCompletedHandler,
+  requestBookingHandler,
+  updateBookingHandler
 } from "../controllers";
 import { asyncWrapper } from "../utils";
-import { bulkMarkBookingsSchema, confirmBookingSchema, requestBookingSchema } from "../schemas";
+import { bulkMarkBookingsSchema, confirmBookingSchema, requestBookingSchema, updateBookingSchema } from "../schemas";
 
 const router = Router();
 
@@ -26,14 +28,26 @@ router.post(
 );
 router.put("/confirm", requireUser, validateResource(confirmBookingSchema), asyncWrapper(confirmBookingHandler));
 router.put("/cancel", requireUser, validateResource(confirmBookingSchema), asyncWrapper(cancelBookingHandler));
+router.put(
+  "/mark-completed",
+  requireUser,
+  validateResource(confirmBookingSchema),
+  asyncWrapper(markBookingAsCompletedHandler)
+);
 router.get("/all", requireUser, asyncWrapper(getAllBookingsHandler));
 router.get("/short-stats", requireUser, asyncWrapper(getBookingShortStatsHandler));
-router.get(
+router.put(
   "/bulk-mark-completed",
   requireUser,
   validateResource(bulkMarkBookingsSchema),
   asyncWrapper(bulkMarkBookingsAsCompletedHandler)
 );
 router.get("/single/:bookingId", requireUser, asyncWrapper(getSingleBookingHandler));
+router.put(
+  "/update/:bookingId",
+  requireUser,
+  validateResource(updateBookingSchema),
+  asyncWrapper(updateBookingHandler)
+);
 
 export default router;

@@ -11,3 +11,14 @@ export const createCustomerSchema = object({
   })
 });
 export type CreateCustomerType = TypeOf<typeof createCustomerSchema>["body"];
+
+export const updateCustomerSchema = object({
+  body: object({
+    firstName: string().min(1, "First name is required"),
+    lastName: string().optional().nullable(),
+    email: string().email("Invalid email"),
+    phone: phoneSchema,
+    description: string().optional().nullable()
+  })
+});
+export type UpdateCustomerType = TypeOf<typeof updateCustomerSchema>["body"];

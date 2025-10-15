@@ -10,6 +10,7 @@ import customerRouter from "./customer.router";
 import employeeRouter from "./employee.router";
 import utilsRouter from "./utils.router";
 import careerRouter from "./career.router";
+import adminRouter from "./admin.router";
 
 import { SendResponse } from "../utils";
 
@@ -31,5 +32,6 @@ router.use("/customer", customerRouter);
 router.use("/employee", employeeRouter);
 router.use("/utils", utilsRouter);
 router.use("/career", careerRouter);
+router.use("/admin", adminRouter);
 
 export default router;

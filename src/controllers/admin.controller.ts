@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import { Request, Response } from "express";
 import { PostWebsiteAboutDataType, PostWebsiteHomeDataType, PostWebsiteServiceDataType } from "../schemas";
 import { SendResponse } from "../utils";

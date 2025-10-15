@@ -73,6 +73,9 @@ class WebsiteHomeInfo {
 }
 
 class WebsiteServiceInfo {
+  @Prop({ required: true, type: String, default: () => uuid() })
+  id: string;
+
   @Prop({ required: true, type: String })
   serviceId: string;
 

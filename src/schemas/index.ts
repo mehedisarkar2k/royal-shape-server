@@ -7,3 +7,4 @@ export * from "./booking.schema";
 export * from "./customer.schema";
 export * from "./employee.schema";
 export * from "./career.schema";
+export * from "./admin.schema";

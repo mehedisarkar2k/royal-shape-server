@@ -2,7 +2,14 @@ import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
 import { AddEmployeeInput } from "../schemas";
 import { SendErrorResponse, SendResponse } from "../utils";
-import { countAllEmployees, createEmployee, findAllEmployeesPaginated, findBranchById } from "../services";
+import {
+  countAllEmployees,
+  createEmployee,
+  deleteEmployeeById,
+  findAllEmployeesPaginated,
+  findBranchById,
+  findEmployeeById
+} from "../services";
 import { ApplicationServices, DATA_NOT_FOUND, EmploymentStatus } from "../constants";
 
 const buildErrorPayload = (
@@ -48,8 +55,8 @@ export async function addEmployeeHandler(
 
   const employee = await createEmployee({
     branchInfo: {
-      branchId: data.branchId,
-      branchName: data.name
+      branchId: branch._id.toString(),
+      branchName: branch.name
     },
     name: data.name.trim(),
     email: data.email.toLowerCase().trim(),
@@ -103,11 +110,12 @@ export async function getAllEmployeesHandler(req: Request, res: Response) {
     name: emp.name,
     email: emp.email,
     jobRole: emp.jobRole,
-    phone: emp.phone.e164,
-    branch: emp.branchInfo.branchName,
+    phone: emp.phone,
+    branch: { id: emp.branchInfo.branchId, name: emp.branchInfo.branchName },
     rating: emp.rating,
-    serviceCompleted: emp.serviceCompleted,
-    status: emp.status,
+    department: emp.department || null,
+    // serviceCompleted: emp.serviceCompleted,
+    // status: emp.status,
     profileImage: emp.profileImage
   }));
 
@@ -121,6 +129,158 @@ export async function getAllEmployeesHandler(req: Request, res: Response) {
       totalItems: totalEmployees,
       totalPages: Math.ceil(totalEmployees / limit),
       hasNext
+    }
+  });
+}
+
+export async function getSingleEmployeeHandler(req: Request, res: Response) {
+  const functionName = getSingleEmployeeHandler.name;
+  const { employeeId } = req.params;
+
+  const employee = await findEmployeeById(employeeId);
+  if (!employee) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Employee not found",
+        DATA_NOT_FOUND,
+        "Employee not found"
+      )
+    });
+  }
+
+  const branch = await findBranchById(employee.branchInfo.branchId);
+  if (!branch) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Branch not found",
+        DATA_NOT_FOUND,
+        "Branch not found"
+      )
+    });
+  }
+
+  return SendResponse.success({
+    res,
+    message: "Fetched employee successfully",
+    data: {
+      employee: {
+        id: employee._id.toString(),
+        name: employee.name,
+        email: employee.email,
+        jobRole: employee.jobRole,
+        phone: employee.phone,
+        department: employee.department,
+        address: employee.address,
+        profileImage: employee.profileImage,
+        branch: {
+          id: branch._id.toString(),
+          name: branch.name
+        }
+      }
+    }
+  });
+}
+
+export async function deleteEmployeeHandler(req: Request, res: Response) {
+  const functionName = deleteEmployeeHandler.name;
+  const { employeeId } = req.params;
+
+  const employee = await findEmployeeById(employeeId);
+  if (!employee) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Employee not found",
+        DATA_NOT_FOUND,
+        "Employee not found"
+      )
+    });
+  }
+
+  await deleteEmployeeById(employeeId);
+
+  return SendResponse.success({
+    res,
+    message: "Employee deleted successfully",
+    data: null
+  });
+}
+
+export async function updateEmployeeHandler(
+  req: Request<{ employeeId: string }, Record<string, never>, AddEmployeeInput>,
+  res: Response
+) {
+  const functionName = updateEmployeeHandler.name;
+  const { employeeId } = req.params;
+  const data = req.body;
+
+  const employee = await findEmployeeById(employeeId);
+  if (!employee) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Employee not found",
+        DATA_NOT_FOUND,
+        "Employee not found"
+      )
+    });
+  }
+
+  if (employee.branchInfo.branchId !== data.branchId) {
+    const branch = await findBranchById(data.branchId);
+    if (!branch) {
+      return SendErrorResponse.notFound({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Branch not found",
+          DATA_NOT_FOUND,
+          "Branch not found"
+        )
+      });
+    }
+    employee.branchInfo = {
+      branchId: data.branchId,
+      branchName: branch.name
+    };
+  }
+
+  employee.name = data.name.trim();
+  employee.jobRole = data.jobRole.trim();
+  employee.phone = {
+    countryCode: data.phoneNumber.countryCode.trim(),
+    number: data.phoneNumber.number.trim(),
+    e164: `${data.phoneNumber.countryCode.trim()}${data.phoneNumber.number.trim()}`
+  };
+  employee.department = data.department?.trim() || null;
+  employee.address = data.address?.trim() || "";
+  employee.profileImage = data.profileImage?.trim() || null;
+
+  await employee.save();
+
+  return SendResponse.success({
+    res,
+    message: "Employee updated successfully",
+    data: {
+      employee: {
+        id: employee._id.toString()
+      }
     }
   });
 }

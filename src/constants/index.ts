@@ -7,3 +7,4 @@ export * from "./service.constant";
 export * from "./employee.constant";
 export * from "./blog.constant";
 export * from "./booking.constant";
+export * from "./career.constant";

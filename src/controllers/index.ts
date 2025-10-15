@@ -6,3 +6,4 @@ export * from "./booking.controller";
 export * from "./customer.controller";
 export * from "./employee.controller";
 export * from "./utils.controller";
+export * from "./career.controller";

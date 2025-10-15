@@ -1,4 +1,5 @@
 import { DocumentType, getModelForClass, ModelOptions, Prop, Severity } from "@typegoose/typegoose";
+import { v4 as uuid } from "uuid";
 import { CareerPostStatus, EmploymentType } from "../constants";
 
 class BranchInfo {
@@ -10,6 +11,9 @@ class BranchInfo {
 }
 
 export class Application {
+  @Prop({ required: true, type: String, default: () => uuid() })
+  id: string;
+
   @Prop({ required: true, type: String })
   applicantName: string;
 
@@ -64,10 +68,10 @@ export class Career {
   @Prop({ required: false, type: [String], default: [] })
   benefits?: string[];
 
-  @Prop({ required: true, type: Array<BranchInfo> })
+  @Prop({ required: true, type: Array<BranchInfo>, _id: false })
   branchesInfo: BranchInfo[];
 
-  @Prop({ required: true, type: Array<Application>, default: [] })
+  @Prop({ required: true, type: Array<Application>, default: [], _id: false })
   applications: Application[];
 
   @Prop({ type: Date, default: null })

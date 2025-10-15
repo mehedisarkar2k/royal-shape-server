@@ -1,4 +1,5 @@
 import { ModelOptions, Prop } from "@typegoose/typegoose";
+import { v4 as uuid } from "uuid";
 import { Phone } from "./common.model";
 
 class SocialInfo {
@@ -47,6 +48,9 @@ class HeroSection {
 }
 
 class BodySection {
+  @Prop({ required: true, type: String, default: () => uuid() })
+  id: string;
+
   @Prop({ required: true, type: String })
   title: string;
 

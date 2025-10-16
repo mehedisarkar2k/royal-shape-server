@@ -2,15 +2,25 @@ import { Router } from "express";
 import { requireUser, validateResource } from "../middleware";
 import {
   createBusinessInfoDocumentIfNotExists,
+  getGeneralSettingsDataHandler,
+  getSocialLinksDataHandler,
   getWebsiteAboutDataHandler,
   getWebsiteHomeDataHandler,
   getWebsiteServiceDataHandler,
+  postGeneralSettingsDataHandler,
+  postSocialLinksDataHandler,
   postWebsiteAboutDataHandler,
   postWebsiteHomeDataHandler,
   postWebsiteServiceDataHandler
 } from "../controllers";
 import { asyncWrapper } from "../utils";
-import { postWebsiteAboutDataSchema, postWebsiteHomeDataSchema, postWebsiteServiceDataSchema } from "../schemas";
+import {
+  postGeneralSettingsDataSchema,
+  postSocialMediaLinksDataSchema,
+  postWebsiteAboutDataSchema,
+  postWebsiteHomeDataSchema,
+  postWebsiteServiceDataSchema
+} from "../schemas";
 
 const router = Router();
 
@@ -38,6 +48,22 @@ router.post(
   requireUser,
   validateResource(postWebsiteAboutDataSchema),
   asyncWrapper(postWebsiteAboutDataHandler)
+);
+
+router.get("/general-settings", requireUser, asyncWrapper(getGeneralSettingsDataHandler));
+router.post(
+  "/general-settings",
+  requireUser,
+  validateResource(postGeneralSettingsDataSchema),
+  asyncWrapper(postGeneralSettingsDataHandler)
+);
+
+router.get("/social-links", requireUser, asyncWrapper(getSocialLinksDataHandler));
+router.post(
+  "/social-links",
+  requireUser,
+  validateResource(postSocialMediaLinksDataSchema),
+  asyncWrapper(postSocialLinksDataHandler)
 );
 
 export default router;

@@ -1,5 +1,4 @@
 export * from "./common.schema";
-export * from "./contact.schema";
 export * from "./auth.schema";
 export * from "./branch.schema";
 export * from "./service.schema";
@@ -8,3 +7,4 @@ export * from "./customer.schema";
 export * from "./employee.schema";
 export * from "./career.schema";
 export * from "./admin.schema";
+export * from "./engagement.schema";

@@ -1,6 +1,12 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
-import { PostWebsiteAboutDataType, PostWebsiteHomeDataType, PostWebsiteServiceDataType } from "../schemas";
+import {
+  PostGeneralSettingsDataType,
+  PostSocialMediaLinksDataType,
+  PostWebsiteAboutDataType,
+  PostWebsiteHomeDataType,
+  PostWebsiteServiceDataType
+} from "../schemas";
 import { SendErrorResponse, SendResponse } from "../utils";
 import { BusinessInfo, BusinessInfoModel, WebsiteServiceInfo } from "../model";
 import { ApplicationServices, DATA_NOT_FOUND, UNAUTHORIZED_ERROR } from "../constants";
@@ -629,6 +635,160 @@ export async function postWebsiteAboutDataHandler(
   return SendResponse.success({
     res,
     message: "Website about data posted successfully",
+    data: null
+  });
+}
+
+export async function getGeneralSettingsDataHandler(req: Request, res: Response) {
+  const functionName = getGeneralSettingsDataHandler.name;
+
+  const businessInfo = await BusinessInfoModel.findOne();
+  if (!businessInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Business info not found",
+        DATA_NOT_FOUND,
+        "Business info document not found"
+      )
+    });
+  }
+
+  const generalSettingsData = {
+    businessName: businessInfo.name,
+    ownerName: businessInfo.ownerName,
+    businessAddress: businessInfo.address,
+    phoneNumber: businessInfo.phone,
+    email: businessInfo.email,
+    logo: businessInfo.logo
+  };
+
+  return SendResponse.success({
+    res,
+    message: "General settings data fetched successfully",
+    data: {
+      generalSettings: generalSettingsData
+    }
+  });
+}
+
+export async function postGeneralSettingsDataHandler(
+  req: Request<Record<string, never>, Record<string, never>, PostGeneralSettingsDataType>,
+  res: Response
+) {
+  const functionName = postGeneralSettingsDataHandler.name;
+  const data = req.body;
+
+  const businessInfo = await BusinessInfoModel.findOne();
+  if (!businessInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Business info not found",
+        DATA_NOT_FOUND,
+        "Business info document not found"
+      )
+    });
+  }
+
+  businessInfo.name = data.businessName || businessInfo.name;
+  businessInfo.ownerName = data.ownerName || businessInfo.ownerName;
+  businessInfo.address = data.businessAddress || businessInfo.address;
+  businessInfo.phone = data.phoneNumber
+    ? {
+        countryCode: data.phoneNumber.countryCode,
+        number: data.phoneNumber.number,
+        e164: `${data.phoneNumber.countryCode}${data.phoneNumber.number}`
+      }
+    : businessInfo.phone;
+  businessInfo.email = data.email || businessInfo.email;
+  businessInfo.logo = data.logo || businessInfo.logo;
+
+  await businessInfo.save();
+
+  return SendResponse.success({
+    res,
+    message: "General settings data posted successfully",
+    data: null
+  });
+}
+
+export async function getSocialLinksDataHandler(req: Request, res: Response) {
+  const functionName = getSocialLinksDataHandler.name;
+
+  const businessInfo = await BusinessInfoModel.findOne();
+  if (!businessInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Business info not found",
+        DATA_NOT_FOUND,
+        "Business info document not found"
+      )
+    });
+  }
+
+  const socialLinks = businessInfo.socialInfo;
+
+  return SendResponse.success({
+    res,
+    message: "Social links data fetched successfully",
+    data: {
+      socialLinks: {
+        facebook: socialLinks.facebook || "",
+        instagram: socialLinks.instagram || "",
+        twitter: socialLinks.twitter || "",
+        linkedin: socialLinks.linkedin || "",
+        tiktok: socialLinks.tiktok || "",
+        youtube: socialLinks.youtube || ""
+      }
+    }
+  });
+}
+
+export async function postSocialLinksDataHandler(
+  req: Request<Record<string, never>, Record<string, never>, PostSocialMediaLinksDataType>,
+  res: Response
+) {
+  const functionName = postSocialLinksDataHandler.name;
+  const data = req.body;
+
+  const businessInfo = await BusinessInfoModel.findOne();
+  if (!businessInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Business info not found",
+        DATA_NOT_FOUND,
+        "Business info document not found"
+      )
+    });
+  }
+
+  businessInfo.socialInfo.facebook = data.facebook || businessInfo.socialInfo.facebook;
+  businessInfo.socialInfo.instagram = data.instagram || businessInfo.socialInfo.instagram;
+  businessInfo.socialInfo.twitter = data.twitter || businessInfo.socialInfo.twitter;
+  businessInfo.socialInfo.linkedin = data.linkedin || businessInfo.socialInfo.linkedin;
+  businessInfo.socialInfo.tiktok = data.tiktok || businessInfo.socialInfo.tiktok;
+  businessInfo.socialInfo.youtube = data.youtube || businessInfo.socialInfo.youtube;
+
+  await businessInfo.save();
+
+  return SendResponse.success({
+    res,
+    message: "Social links data posted successfully",
     data: null
   });
 }

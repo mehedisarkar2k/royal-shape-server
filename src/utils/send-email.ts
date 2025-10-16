@@ -20,7 +20,7 @@ const loadTemplate = (templateName: string, data: unknown): string => {
 };
 
 const transporter = nodemailer.createTransport({
-  host: "mail.privateemail.com",
+  host: "smtp.gmail.com",
   port: 587, // secure:465
   auth: {
     user: process.env.SMTP_EMAIL || (config.get("smtp.email") as string),
@@ -47,16 +47,12 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
 export const sendContactUsEmail = async ({
   name,
   email,
-  phone,
-  meetingType,
-  preferredDate,
+  topic,
   message
 }: {
   name: string;
   email: string;
-  phone: { countryCode: string; number: string };
-  meetingType: string;
-  preferredDate: string;
+  topic: string;
   message: string;
 }) => {
   const subject = `${name} submitted a request from contact section.`;
@@ -64,9 +60,7 @@ export const sendContactUsEmail = async ({
   const html = loadTemplate("contact-us.template", {
     name,
     email,
-    phone: `${phone.countryCode} ${phone.number}`,
-    meetingType,
-    preferredDate,
+    topic,
     message,
     copyRightYear
   });

@@ -1,4 +1,5 @@
 import { array, object, string, TypeOf } from "zod";
+import { phoneSchema } from "./common.schema";
 
 export const postWebsiteHomeDataSchema = object({
   body: object({
@@ -58,3 +59,27 @@ export const postWebsiteAboutDataSchema = object({
   })
 });
 export type PostWebsiteAboutDataType = TypeOf<typeof postWebsiteAboutDataSchema>["body"];
+
+export const postGeneralSettingsDataSchema = object({
+  body: object({
+    logo: string().min(1),
+    businessName: string().min(1),
+    ownerName: string().min(1),
+    businessAddress: string().min(1),
+    phoneNumber: phoneSchema,
+    email: string().min(1).email()
+  })
+});
+export type PostGeneralSettingsDataType = TypeOf<typeof postGeneralSettingsDataSchema>["body"];
+
+export const postSocialMediaLinksDataSchema = object({
+  body: object({
+    facebook: string().min(1).optional(),
+    twitter: string().min(1).optional(),
+    instagram: string().min(1).optional(),
+    linkedin: string().min(1).optional(),
+    youtube: string().min(1).optional(),
+    tiktok: string().min(1).optional()
+  })
+});
+export type PostSocialMediaLinksDataType = TypeOf<typeof postSocialMediaLinksDataSchema>["body"];

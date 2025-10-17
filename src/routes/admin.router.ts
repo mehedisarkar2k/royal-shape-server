@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireUser, validateResource } from "../middleware";
 import {
   createBusinessInfoDocumentIfNotExists,
+  getDashboardOverviewDataHandler,
   getGeneralSettingsDataHandler,
   getSocialLinksDataHandler,
   getWebsiteAboutDataHandler,
@@ -65,5 +66,7 @@ router.post(
   validateResource(postSocialMediaLinksDataSchema),
   asyncWrapper(postSocialLinksDataHandler)
 );
+
+router.get("/dashboard/overview", asyncWrapper(getDashboardOverviewDataHandler));
 
 export default router;

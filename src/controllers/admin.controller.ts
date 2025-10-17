@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
+import { DateTime } from "luxon";
 import {
   PostGeneralSettingsDataType,
   PostSocialMediaLinksDataType,
@@ -8,9 +9,17 @@ import {
   PostWebsiteServiceDataType
 } from "../schemas";
 import { SendErrorResponse, SendResponse } from "../utils";
-import { BusinessInfo, BusinessInfoModel, WebsiteServiceInfo } from "../model";
-import { ApplicationServices, DATA_NOT_FOUND, UNAUTHORIZED_ERROR } from "../constants";
+import {
+  BusinessInfo,
+  BusinessInfoModel,
+  WebsiteServiceInfo,
+  BookingModel,
+  CustomerModel,
+  ServiceModel
+} from "../model";
+import { ApplicationServices, DATA_NOT_FOUND, UNAUTHORIZED_ERROR, BookingStatus } from "../constants";
 import { findServiceCategoryById } from "../services";
+import { Types } from "mongoose";
 
 const buildErrorPayload = (
   endpoint: string,
@@ -791,4 +800,313 @@ export async function postSocialLinksDataHandler(
     message: "Social links data posted successfully",
     data: null
   });
+}
+
+export async function getDashboardOverviewDataHandler(req: Request, res: Response) {
+  const functionName = getDashboardOverviewDataHandler.name;
+
+  try {
+    // Get current date ranges in Australian timezone (Sydney/Melbourne)
+    const AUSTRALIA_TZ = "Australia/Sydney";
+    const now = DateTime.now().setZone(AUSTRALIA_TZ);
+
+    const todayStart = now.startOf("day").toJSDate();
+    const todayEnd = now.endOf("day").toJSDate();
+
+    const yesterdayStart = now.minus({ days: 1 }).startOf("day").toJSDate();
+    const yesterdayEnd = now.minus({ days: 1 }).endOf("day").toJSDate();
+
+    const lastMonthEnd = now.minus({ months: 1 }).endOf("day").toJSDate();
+
+    // * TOP SECTION DATA
+
+    // Today's confirmed bookings count
+    const todaysBookingsCount = await BookingModel.countDocuments({
+      bookingDate: { $gte: todayStart, $lte: todayEnd },
+      status: { $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] }
+    });
+
+    // Yesterday's confirmed bookings count
+    const yesterdaysBookingsCount = await BookingModel.countDocuments({
+      bookingDate: { $gte: yesterdayStart, $lte: yesterdayEnd },
+      status: { $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] }
+    });
+
+    // Calculate percentage change for bookings
+    const bookingsPercentageChange =
+      yesterdaysBookingsCount === 0
+        ? todaysBookingsCount > 0
+          ? 100
+          : 0
+        : Math.round(((todaysBookingsCount - yesterdaysBookingsCount) / yesterdaysBookingsCount) * 100);
+
+    // Today's income from confirmed bookings
+    const todaysIncomeResult = await BookingModel.aggregate([
+      {
+        $match: {
+          bookingDate: { $gte: todayStart, $lte: todayEnd },
+          status: { $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalIncome: { $sum: "$totalPrice" }
+        }
+      }
+    ]);
+    const todaysIncome = todaysIncomeResult.length > 0 ? todaysIncomeResult[0].totalIncome : 0;
+
+    // Yesterday's income from confirmed bookings
+    const yesterdaysIncomeResult = await BookingModel.aggregate([
+      {
+        $match: {
+          bookingDate: { $gte: yesterdayStart, $lte: yesterdayEnd },
+          status: { $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalIncome: { $sum: "$totalPrice" }
+        }
+      }
+    ]);
+    const yesterdaysIncome = yesterdaysIncomeResult.length > 0 ? yesterdaysIncomeResult[0].totalIncome : 0;
+
+    // Calculate percentage change for income
+    const incomePercentageChange =
+      yesterdaysIncome === 0
+        ? todaysIncome > 0
+          ? 100
+          : 0
+        : Math.round(((todaysIncome - yesterdaysIncome) / yesterdaysIncome) * 100);
+
+    // Total customers count
+    const totalCustomersCount = await CustomerModel.countDocuments();
+
+    // Last month's customers count
+    const lastMonthCustomersCount = await CustomerModel.countDocuments({
+      createdAt: { $lte: lastMonthEnd }
+    });
+
+    // Calculate percentage change for customers
+    const customersPercentageChange =
+      lastMonthCustomersCount === 0
+        ? totalCustomersCount > 0
+          ? 100
+          : 0
+        : Math.round(((totalCustomersCount - lastMonthCustomersCount) / lastMonthCustomersCount) * 100);
+
+    // Upcoming events in 2 hours (confirmed bookings with start time within next 2 hours)
+    const twoHoursLaterTime = now.plus({ hours: 2 }).toFormat("HH:mm");
+    const upcomingEventsCount = await BookingModel.countDocuments({
+      bookingDate: { $gte: todayStart, $lte: todayEnd },
+      status: BookingStatus.CONFIRMED,
+      startTime: { $lte: twoHoursLaterTime }
+    });
+
+    // * BOTTOM LEFT SECTION DATA - Recent 5 bookings today
+
+    const todaysRecentBookings = await BookingModel.aggregate([
+      {
+        $match: {
+          bookingDate: { $gte: todayStart, $lte: todayEnd },
+          status: { $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] }
+        }
+      },
+      {
+        $sort: { startTime: 1 }
+      },
+      {
+        $limit: 5
+      },
+      {
+        $addFields: {
+          customerObjId: { $toObjectId: "$customerId" }
+        }
+      },
+      {
+        $lookup: {
+          from: "customers",
+          localField: "customerObjId",
+          foreignField: "_id",
+          as: "customerInfo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$customerInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          customerId: 1,
+          customerName: {
+            $concat: [
+              { $ifNull: ["$customerInfo.firstName", "Unknown"] },
+              " ",
+              { $ifNull: ["$customerInfo.lastName", ""] }
+            ]
+          },
+          serviceType: 1,
+          serviceIds: 1,
+          comboId: 1,
+          startTime: 1,
+          endTime: 1,
+          status: 1,
+          branchId: 1,
+          branchName: 1
+        }
+      }
+    ]);
+
+    // Calculate duration and get service names
+    const formattedTodaysBookings = await Promise.all(
+      todaysRecentBookings.map(async (booking) => {
+        let serviceName = "N/A";
+        let duration = 0;
+
+        // Get service name based on service type
+        if (booking.serviceIds && booking.serviceIds.length > 0) {
+          const serviceObjIds = booking.serviceIds.map((id: string) => new Types.ObjectId(id));
+          const services = await ServiceModel.find({ _id: { $in: serviceObjIds } }).select("name duration");
+          serviceName = services.map((s) => s.name).join(", ");
+
+          // Calculate total duration from services
+          duration = services.reduce((total, service) => {
+            const [hours, minutes] = service.duration.split(":").map(Number);
+            return total + hours * 60 + minutes;
+          }, 0);
+        }
+
+        // Calculate duration from start and end time if not available from services
+        if (duration === 0 && booking.startTime && booking.endTime) {
+          const [startHour, startMin] = booking.startTime.split(":").map(Number);
+          const [endHour, endMin] = booking.endTime.split(":").map(Number);
+          duration = endHour * 60 + endMin - (startHour * 60 + startMin);
+        }
+
+        return {
+          customerId: booking.customerId,
+          customerName: booking.customerName.trim() || "Unknown",
+          serviceName,
+          startTime: booking.startTime,
+          duration,
+          status: booking.status,
+          branch: {
+            id: booking.branchId,
+            name: booking.branchName
+          }
+        };
+      })
+    );
+
+    // * BOTTOM RIGHT SECTION DATA - Top 5 services by bookings
+
+    const topServicesData = await BookingModel.aggregate([
+      {
+        $match: {
+          status: { $in: ["confirmed", "completed"] },
+          serviceIds: {
+            $exists: true,
+            $ne: null,
+            $not: { $size: 0 }
+          }
+        }
+      },
+      {
+        $unwind: "$serviceIds"
+      },
+      {
+        $group: {
+          _id: "$serviceIds",
+          numberOfBookings: { $sum: 1 },
+          totalIncome: { $sum: "$totalPrice" }
+        }
+      },
+      {
+        $sort: { numberOfBookings: -1 }
+      },
+      {
+        $limit: 5
+      },
+      {
+        $addFields: {
+          objId: { $toObjectId: "$_id" }
+        }
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "objId",
+          foreignField: "_id",
+          as: "serviceInfo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$serviceInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          serviceName: {
+            $ifNull: ["$serviceInfo.name", "Unknown Service"]
+          },
+          numberOfBookings: 1,
+          totalIncome: 1
+        }
+      }
+    ]);
+
+    // Format response
+    return SendResponse.success({
+      res,
+      message: "Dashboard overview data fetched successfully",
+      data: {
+        topSection: {
+          todaysBookings: {
+            count: todaysBookingsCount,
+            percentageChange: bookingsPercentageChange
+          },
+          todaysIncome: {
+            amount: Math.round(todaysIncome * 100) / 100,
+            percentageChange: incomePercentageChange
+          },
+          totalCustomers: {
+            count: totalCustomersCount,
+            percentageChange: customersPercentageChange
+          },
+          upcomingEventsIn2Hours: {
+            count: upcomingEventsCount
+          }
+        },
+        bottomLeftSection: {
+          todaysBookings: formattedTodaysBookings
+        },
+        bottomRightSection: {
+          topServices: topServicesData.map((service) => ({
+            serviceName: service.serviceName,
+            numberOfBookings: service.numberOfBookings,
+            totalIncome: Math.round(service.totalIncome * 100) / 100
+          }))
+        }
+      }
+    });
+  } catch (error) {
+    return SendErrorResponse.internalServer({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Failed to fetch dashboard overview data",
+        { code: "INTERNAL_SERVER_ERROR", message: "An error occurred while fetching dashboard data" },
+        error instanceof Error ? error.message : "Unknown error"
+      )
+    });
+  }
 }

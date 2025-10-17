@@ -8,7 +8,7 @@ import {
   PostWebsiteHomeDataType,
   PostWebsiteServiceDataType
 } from "../schemas";
-import { SendErrorResponse, SendResponse } from "../utils";
+import { calculateTimeDurationInMinutes, SendErrorResponse, SendResponse } from "../utils";
 import {
   BusinessInfo,
   BusinessInfoModel,
@@ -810,13 +810,19 @@ export async function getDashboardOverviewDataHandler(req: Request, res: Respons
     const AUSTRALIA_TZ = "Australia/Sydney";
     const now = DateTime.now().setZone(AUSTRALIA_TZ);
 
-    const todayStart = now.startOf("day").toJSDate();
-    const todayEnd = now.endOf("day").toJSDate();
+    // For MongoDB queries: We need to create Date objects that represent
+    // the start/end of day in Australian timezone
+    // Method: Create dates in UTC that match the Australian local date
+    const todayDateStr = now.toFormat("yyyy-MM-dd");
+    const todayStart = new Date(`${todayDateStr}T00:00:00.000`);
+    const todayEnd = new Date(`${todayDateStr}T23:59:59.999`);
 
-    const yesterdayStart = now.minus({ days: 1 }).startOf("day").toJSDate();
-    const yesterdayEnd = now.minus({ days: 1 }).endOf("day").toJSDate();
+    const yesterdayDateStr = now.minus({ days: 1 }).toFormat("yyyy-MM-dd");
+    const yesterdayStart = new Date(`${yesterdayDateStr}T00:00:00.000`);
+    const yesterdayEnd = new Date(`${yesterdayDateStr}T23:59:59.999`);
 
-    const lastMonthEnd = now.minus({ months: 1 }).endOf("day").toJSDate();
+    const lastMonthDateStr = now.minus({ months: 1 }).toFormat("yyyy-MM-dd");
+    const lastMonthEnd = new Date(`${lastMonthDateStr}T23:59:59.999`);
 
     // * TOP SECTION DATA
 
@@ -966,27 +972,15 @@ export async function getDashboardOverviewDataHandler(req: Request, res: Respons
     const formattedTodaysBookings = await Promise.all(
       todaysRecentBookings.map(async (booking) => {
         let serviceName = "N/A";
-        let duration = 0;
 
         // Get service name based on service type
         if (booking.serviceIds && booking.serviceIds.length > 0) {
           const serviceObjIds = booking.serviceIds.map((id: string) => new Types.ObjectId(id));
           const services = await ServiceModel.find({ _id: { $in: serviceObjIds } }).select("name duration");
           serviceName = services.map((s) => s.name).join(", ");
-
-          // Calculate total duration from services
-          duration = services.reduce((total, service) => {
-            const [hours, minutes] = service.duration.split(":").map(Number);
-            return total + hours * 60 + minutes;
-          }, 0);
         }
 
-        // Calculate duration from start and end time if not available from services
-        if (duration === 0 && booking.startTime && booking.endTime) {
-          const [startHour, startMin] = booking.startTime.split(":").map(Number);
-          const [endHour, endMin] = booking.endTime.split(":").map(Number);
-          duration = endHour * 60 + endMin - (startHour * 60 + startMin);
-        }
+        const duration = calculateTimeDurationInMinutes(booking.startTime, booking.endTime);
 
         return {
           customerId: booking.customerId,

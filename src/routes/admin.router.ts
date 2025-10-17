@@ -67,6 +67,6 @@ router.post(
   asyncWrapper(postSocialLinksDataHandler)
 );
 
-router.get("/dashboard/overview", asyncWrapper(getDashboardOverviewDataHandler));
+router.get("/dashboard/overview", requireUser, asyncWrapper(getDashboardOverviewDataHandler));
 
 export default router;

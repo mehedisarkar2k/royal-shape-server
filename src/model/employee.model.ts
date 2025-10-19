@@ -44,6 +44,9 @@ export class Employee {
 
   @Prop({ required: true, type: Number, default: 0 })
   serviceCompleted: number;
+
+  @Prop({ required: false, type: [String], default: [] })
+  specialization?: string[];
 }
 
 export const EmployeeModel = getModelForClass(Employee);

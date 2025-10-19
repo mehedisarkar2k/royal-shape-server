@@ -91,6 +91,14 @@ class WebsiteAboutInfo {
   bodySections: BodySection[];
 }
 
+class ShowcaseInfo {
+  @Prop({ required: true, type: String })
+  altText: string;
+
+  @Prop({ required: true, type: String })
+  url: string;
+}
+
 class WebsiteInfo {
   @Prop({ required: true, type: WebsiteHomeInfo, _id: false, allowMixed: Severity.ALLOW })
   home: WebsiteHomeInfo;
@@ -100,6 +108,9 @@ class WebsiteInfo {
 
   @Prop({ required: true, type: WebsiteAboutInfo, _id: false, allowMixed: Severity.ALLOW })
   about: WebsiteAboutInfo;
+
+  @Prop({ required: false, type: Array<ShowcaseInfo>, _id: false, allowMixed: Severity.ALLOW, default: [] })
+  showcase?: ShowcaseInfo[];
 }
 
 @ModelOptions({

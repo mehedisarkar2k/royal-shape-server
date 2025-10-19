@@ -10,7 +10,7 @@ class OpeningHour {
   close: string;
 }
 
-class WeeklySchedule {
+export class WeeklySchedule {
   @Prop({ required: true, type: OpeningHour, default: null, _id: false })
   monday: OpeningHour;
 
@@ -64,6 +64,12 @@ export class Branch {
 
   @Prop({ required: false, type: Number, default: 0 })
   rating?: number;
+
+  @Prop({ required: true, type: Number })
+  latitude: number;
+
+  @Prop({ required: true, type: Number })
+  longitude: number;
 }
 
 export const BranchModel = getModelForClass(Branch);

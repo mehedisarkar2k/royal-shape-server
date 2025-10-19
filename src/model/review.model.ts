@@ -9,6 +9,9 @@ export class Review {
   @Prop({ required: false, default: null })
   customerEmail?: string;
 
+  @Prop({ required: false, type: String, default: null })
+  customerImage?: string;
+
   @Prop({ required: true })
   rating: number;
 

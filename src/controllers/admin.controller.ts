@@ -35,7 +35,7 @@ const buildErrorPayload = (
     endpoint,
     functionName,
     method,
-    service: ApplicationServices.WEBSITE,
+    service: ApplicationServices.ADMIN,
     id: uuid()
   }
 });

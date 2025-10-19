@@ -37,6 +37,7 @@ export enum ApplicationServices {
   BLOG = "Blog",
   BOOKING = "Booking",
   UTILS = "Utils",
+  ADMIN = "Admin",
   WEBSITE = "Website",
   ENGAGEMENT = "Engagement"
 }

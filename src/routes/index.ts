@@ -1,7 +1,6 @@
 import express from "express";
 import config from "config";
 
-import contactRouter from "./contact.router";
 import authRouter from "./auth.router";
 import branchRouter from "./branch.router";
 import serviceRouter from "./service.router";
@@ -10,6 +9,8 @@ import customerRouter from "./customer.router";
 import employeeRouter from "./employee.router";
 import utilsRouter from "./utils.router";
 import careerRouter from "./career.router";
+import adminRouter from "./admin.router";
+import engagementRouter from "./engagement.router";
 
 import { SendResponse } from "../utils";
 
@@ -23,7 +24,6 @@ router.get("/", (req, res): void => {
 });
 
 router.use("/auth", authRouter);
-router.use("/contact", contactRouter);
 router.use("/branch", branchRouter);
 router.use("/service", serviceRouter);
 router.use("/booking", bookingRouter);
@@ -31,5 +31,7 @@ router.use("/customer", customerRouter);
 router.use("/employee", employeeRouter);
 router.use("/utils", utilsRouter);
 router.use("/career", careerRouter);
+router.use("/admin", adminRouter);
+router.use("/engagement", engagementRouter);
 
 export default router;

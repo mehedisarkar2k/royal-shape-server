@@ -49,7 +49,9 @@ export async function createBranchHandler(
 
   const newBranch = await createBranch({
     ...data,
-    phone: { ...data.phone, e164: `${data.phone.countryCode}${data.phone.number}` }
+    phone: { ...data.phone, e164: `${data.phone.countryCode}${data.phone.number}` },
+    latitude: data.latitude,
+    longitude: data.longitude
   });
 
   return SendResponse.created({

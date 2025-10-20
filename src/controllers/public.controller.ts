@@ -2,14 +2,19 @@ import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
 import { SendErrorResponse, SendResponse } from "../utils";
 import { BusinessInfoModel, WeeklySchedule } from "../model";
-import { ApplicationServices, DATA_NOT_FOUND } from "../constants";
+import { ApplicationServices, DATA_NOT_FOUND, INPUT_MISSING, UNEXPECTED_ERROR } from "../constants";
 import {
   findAllBranches,
+  findAllCareerPosts,
   findAllEmployeesPaginated,
   findAllServiceCategories,
+  findCareerPostById,
   findServicesByCategoryId
 } from "../services";
 import { ReviewModel } from "../model/review.model";
+import { ApplyCareerPostType } from "../schemas";
+import { uploadFileR2WithAutoKey } from "../services/r2-storage.service";
+import { DateTime } from "luxon";
 
 const buildErrorPayload = (
   endpoint: string,
@@ -528,5 +533,275 @@ export async function getWebsiteAboutPageDataHandler(req: Request, res: Response
       branches: finalBranches,
       experts
     }
+  });
+}
+
+export async function getWebsiteCareersPageDataHandler(req: Request, res: Response) {
+  const functionName = getWebsiteCareersPageDataHandler.name;
+
+  const businessInfo = await BusinessInfoModel.findOne();
+  if (!businessInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Business info not found",
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const websiteInfo = businessInfo.websiteInfo;
+  if (!websiteInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Website info not found",
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const homeData = websiteInfo.home;
+
+  const openPositions = await findAllCareerPosts();
+  const finalOpenPositions = openPositions.map((post) => ({
+    id: post._id.toString(),
+    jobTitle: post.jobTitle,
+    jobDescription: post.jobDescription,
+    employmentType: post.employmentType,
+    department: post.department
+  }));
+
+  const employees = await findAllEmployeesPaginated(1, 4);
+  const experts = employees.map((employee) => ({
+    id: employee._id.toString(),
+    name: employee.name,
+    designation: employee.jobRole,
+    profileImage: employee.profileImage,
+    specialization:
+      !employee.specialization || employee.specialization?.length === 0
+        ? ["Modern Patterns", "Special Events"]
+        : employee.specialization,
+    rating: employee.rating || 5
+  }));
+
+  const reviews = await ReviewModel.find({ showInWebsite: true }).sort({ rating: -1 }).limit(5);
+  const testimonials = reviews.map((review) => ({
+    id: review._id.toString(),
+    customerName: review.customerName,
+    customerImage: review.customerImage,
+    rating: review.rating,
+    comment: review.comment
+  }));
+
+  return SendResponse.success({
+    res,
+    message: "Website careers page public data fetched successfully",
+    data: {
+      hero: {
+        // TODO: change later to careers specific data
+        chipText: "Experience Luxury",
+        title: "Join Our Team of Beauty Professionals",
+        subtitle:
+          "Build your career in creative and dynamic environment where talent meets opportunity and excellence is our standard.",
+        image: homeData.heroSection.image, // TODO: change it
+        ctaButton1: {
+          link: "/career#open-positions",
+          text: "View Open Positions"
+        },
+        ctaButton2: {
+          link: "/career#our-culture",
+          text: "Our Culture"
+        }
+      },
+      numberSections: {
+        // TODO: change later to careers specific data
+        yearOfExcellence: 10,
+        teamMembers: 50,
+        happyClients: 10000,
+        branches: 4
+      },
+      openPositions: finalOpenPositions,
+      experts,
+      testimonials
+    }
+  });
+}
+
+export async function getSingleCareerPostPublicDataHandler(req: Request, res: Response) {
+  const functionName = getSingleCareerPostPublicDataHandler.name;
+  const { careerId } = req.params;
+
+  const jobPost = await findCareerPostById(careerId);
+  if (!jobPost) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Career post not found",
+        DATA_NOT_FOUND,
+        `No career post found with the ID: ${careerId}`
+      )
+    });
+  }
+
+  const formattedJobPost = {
+    id: jobPost._id.toString(),
+    jobTitle: jobPost.jobTitle,
+    department: jobPost.department,
+    employmentType: jobPost.employmentType,
+    showSalary: jobPost.showSalary,
+    salary: jobPost.showSalary
+      ? {
+          minimum: jobPost.minimumSalary,
+          maximum: jobPost.maximumSalary,
+          currency: jobPost.currency
+        }
+      : null,
+    applicationDeadline: jobPost.applicationDeadline.toISOString().split("T")[0],
+    postedAt: jobPost.postedAt?.toISOString().split("T")[0],
+    jobDescription: jobPost.jobDescription,
+    requirements: jobPost.requirements,
+    benefits: jobPost.benefits,
+    branches: jobPost.branchesInfo.map((b) => ({ id: b.branchId, name: b.branchName }))
+  };
+
+  return SendResponse.success({
+    res,
+    message: "Career post fetched successfully",
+    data: {
+      jobPost: formattedJobPost
+    }
+  });
+}
+
+export async function uploadJobDocumentHandler(req: Request, res: Response) {
+  const functionName = uploadJobDocumentHandler.name;
+  const { file } = req;
+  if (!file) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "No file uploaded",
+        INPUT_MISSING,
+        "No file uploaded"
+      )
+    });
+  }
+
+  if (file.mimetype !== "application/pdf") {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Invalid file type. Only PDF files are allowed",
+        INPUT_MISSING,
+        "Invalid file type. Only PDF files are allowed"
+      )
+    });
+  }
+
+  const filepath = file.path;
+
+  const fileUploadRes = await uploadFileR2WithAutoKey(filepath, "job-application-docs", false);
+
+  if (!fileUploadRes.success) {
+    if (fileUploadRes.code === 404) {
+      return SendErrorResponse.notFound({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          fileUploadRes.message || "File not found",
+          DATA_NOT_FOUND,
+          "File not found"
+        )
+      });
+    }
+
+    return SendErrorResponse.internalServer({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        fileUploadRes.message || "File upload failed",
+        UNEXPECTED_ERROR,
+        "File upload failed"
+      )
+    });
+  }
+
+  return SendResponse.success({
+    res,
+    message: "Job document uploaded successfully",
+    data: {
+      url: fileUploadRes.publicUrl
+    }
+  });
+}
+
+export async function applyToCareerPostHandler(
+  req: Request<{ careerId: string }, Record<string, never>, ApplyCareerPostType>,
+  res: Response
+) {
+  const functionName = applyToCareerPostHandler.name;
+  const { careerId } = req.params;
+  const { applicantName, applicantEmail, applicantPhone, resumeUrl, coverLetter } = req.body;
+
+  const jobPost = await findCareerPostById(careerId);
+  if (!jobPost) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Career post not found",
+        DATA_NOT_FOUND,
+        `No career post found with the ID: ${careerId}`
+      )
+    });
+  }
+
+  const AUSTRALIA_TZ = "Australia/Sydney";
+  const appliedTime = DateTime.now().setZone(AUSTRALIA_TZ);
+
+  jobPost.applications.push({
+    id: uuid(),
+    applicantName,
+    applicantEmail,
+    applicantPhone: {
+      ...applicantPhone,
+      e164: `+${applicantPhone.countryCode}${applicantPhone.number}`
+    },
+    resumeUrl,
+    coverLetter: coverLetter || "",
+    appliedAt: appliedTime.toJSDate()
+  });
+
+  jobPost.markModified("applications");
+  await jobPost.save();
+
+  return SendResponse.success({
+    res,
+    message: "Applied to career post successfully",
+    data: null
   });
 }

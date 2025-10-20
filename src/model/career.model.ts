@@ -1,6 +1,7 @@
 import { DocumentType, getModelForClass, ModelOptions, Prop, Severity } from "@typegoose/typegoose";
 import { v4 as uuid } from "uuid";
 import { CareerPostStatus, EmploymentType } from "../constants";
+import { Phone } from "./common.model";
 
 class BranchInfo {
   @Prop({ required: true, type: String })
@@ -19,6 +20,9 @@ export class Application {
 
   @Prop({ required: true, type: String })
   applicantEmail: string;
+
+  @Prop({ required: true, type: Phone })
+  applicantPhone: Phone;
 
   @Prop({ required: true, type: String })
   resumeUrl: string;

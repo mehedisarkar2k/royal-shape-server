@@ -1,5 +1,6 @@
 import { array, boolean, nativeEnum, number, object, string, TypeOf } from "zod";
 import { CareerPostStatus, EmploymentType } from "../constants";
+import { phoneSchema } from "./common.schema";
 
 export const addJobPostingSchema = object({
   body: object({
@@ -20,3 +21,14 @@ export const addJobPostingSchema = object({
 });
 
 export type AddJobPostingType = TypeOf<typeof addJobPostingSchema>["body"];
+
+export const applyCareerPostSchema = object({
+  body: object({
+    applicantName: string().min(1, "Applicant name is required"),
+    applicantEmail: string().min(1, "Applicant email is required").email("Invalid email address"),
+    applicantPhone: phoneSchema,
+    resumeUrl: string().min(1, "Resume is required"),
+    coverLetter: string().optional().nullable()
+  })
+});
+export type ApplyCareerPostType = TypeOf<typeof applyCareerPostSchema>["body"];

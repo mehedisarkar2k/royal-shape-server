@@ -12,6 +12,10 @@ export async function findAllCareerPostsPaginated(page: number, limit: number) {
     .lean();
 }
 
+export async function findAllCareerPosts() {
+  return CareerModel.find({}).sort({ createdAt: -1 }).lean();
+}
+
 export async function countAllCareerPosts() {
   return CareerModel.countDocuments({});
 }

@@ -56,14 +56,14 @@ const buildErrorPayload = (
 
 export async function getAvailableSlotsHandler(req: Request, res: Response) {
   const functionName = getAvailableSlotsHandler.name;
-  const { branchId, date, type, serviceIds, comboIds } = req.query;
+  const { branchId, date, type, serviceIds, comboId } = req.query;
 
   try {
-    // Validate required parameters
-    if (!branchId || !date || !serviceIds) {
+    // Validate required parameters: serviceIds or comboId is required
+    if (!branchId || !date || (!serviceIds && !comboId)) {
       return SendErrorResponse.badRequest({
         res,
-        message: "branchId, date, and serviceIds are required"
+        message: "branchId, date, and serviceIds or comboId are required"
       });
     }
 
@@ -824,6 +824,85 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
     category: {
       id: serviceCategory._id.toString(),
       name: serviceCategory.name
+    },
+    services: serviceInfo.map((service) => ({
+      id: service._id.toString(),
+      name: service.name
+    })),
+    price: booking.totalPrice,
+    date: booking.bookingDate.toISOString().split("T")[0],
+    startTime: booking.startTime,
+    endTime: booking.endTime,
+    status: booking.status
+  };
+
+  return SendResponse.success({
+    res,
+    message: "Booking retrieved successfully",
+    data: {
+      booking: formattedBooking
+    }
+  });
+}
+
+export async function getPublicSingleBookingHandler(req: Request, res: Response) {
+  const functionName = getPublicSingleBookingHandler.name;
+  const { bookingId } = req.params;
+
+  const booking = await findBookingById(bookingId);
+  if (!booking) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Booking not found",
+        DATA_NOT_FOUND,
+        "Booking not found"
+      )
+    });
+  }
+
+  const customerInfo = await findCustomerById(booking.customerId);
+  const serviceInfo = await findServicesByIds(booking.serviceIds || []);
+  const branchInfo = await findBranchById(booking.branchId);
+
+  if (!customerInfo || !branchInfo || serviceInfo.length === 0) {
+    return SendErrorResponse.internalServer({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Failed to retrieve booking details",
+        UNEXPECTED_ERROR,
+        "Failed to retrieve booking details"
+      )
+    });
+  }
+
+  const serviceCategory = await findServiceCategoryById(serviceInfo[0].categoryId);
+  if (!serviceCategory) {
+    return SendErrorResponse.internalServer({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Service category not found while retrieving booking details",
+        DATA_NOT_FOUND,
+        "Service category not found while retrieving booking details"
+      )
+    });
+  }
+
+  const formattedBooking = {
+    id: booking._id.toString(),
+    shortId: booking.shortId,
+    branch: {
+      id: branchInfo._id.toString(),
+      name: branchInfo.name
     },
     services: serviceInfo.map((service) => ({
       id: service._id.toString(),

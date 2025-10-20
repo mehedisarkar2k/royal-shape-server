@@ -7,6 +7,7 @@ import {
   getAllBookingsHandler,
   getAvailableSlotsHandler,
   getBookingShortStatsHandler,
+  getPublicSingleBookingHandler,
   getSingleBookingHandler,
   manualCreateBookingHandler,
   markBookingAsCompletedHandler,
@@ -49,5 +50,6 @@ router.put(
   validateResource(updateBookingSchema),
   asyncWrapper(updateBookingHandler)
 );
+router.get("/public/single/:bookingId", asyncWrapper(getPublicSingleBookingHandler));
 
 export default router;

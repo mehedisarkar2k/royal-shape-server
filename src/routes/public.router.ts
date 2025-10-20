@@ -6,6 +6,8 @@ import {
   contactFormSubmitHandler,
   getSingleCareerPostPublicDataHandler,
   getWebsiteAboutPageDataHandler,
+  getWebsiteBranchesPublicDataHandler,
+  getWebsiteBranchServicesPublicDataHandler,
   getWebsiteCareersPageDataHandler,
   getWebsiteContactPageDataHandler,
   getWebsiteFooterPublicDataHandler,
@@ -40,5 +42,7 @@ router.post(
   validateResource(contactFormSubmitSchema),
   asyncWrapper(contactFormSubmitHandler)
 );
+router.get("/website/branches-info", asyncWrapper(getWebsiteBranchesPublicDataHandler));
+router.get("/website/branch/services-info/:branchId", asyncWrapper(getWebsiteBranchServicesPublicDataHandler));
 
 export default router;

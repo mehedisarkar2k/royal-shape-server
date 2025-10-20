@@ -8,6 +8,10 @@ export async function findAllServiceCategories() {
   return ServiceCategoryModel.find();
 }
 
+export async function findAllServiceCategoriesOfBranch(branchId: string) {
+  return ServiceCategoryModel.find({ "branches.branchId": branchId });
+}
+
 export async function findAllServiceCategoriesPaginated(page: number, limit: number) {
   return ServiceCategoryModel.find()
     .sort({ createdAt: -1 })

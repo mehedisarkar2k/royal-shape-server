@@ -8,6 +8,8 @@ import {
   findAllCareerPosts,
   findAllEmployeesPaginated,
   findAllServiceCategories,
+  findAllServiceCategoriesOfBranch,
+  findBranchById,
   findCareerPostById,
   findServicesByCategoryId
 } from "../services";
@@ -827,6 +829,109 @@ export async function getWebsiteContactPageDataHandler(req: Request, res: Respon
     message: "Website contact page public data fetched successfully",
     data: {
       branches: finalBranches
+    }
+  });
+}
+
+export async function getWebsiteBranchesPublicDataHandler(req: Request, res: Response) {
+  const branches = await findAllBranches();
+  const finalBranches = branches.map((branch) => {
+    return {
+      id: branch._id.toString(),
+      name: branch.name,
+      address: branch.address
+    };
+  });
+
+  return SendResponse.success({
+    res,
+    message: "Website branches public data fetched successfully",
+    data: {
+      branches: finalBranches
+    }
+  });
+}
+
+export async function getWebsiteBranchServicesPublicDataHandler(req: Request, res: Response) {
+  const functionName = getWebsiteBranchServicesPublicDataHandler.name;
+  const { branchId } = req.params;
+
+  const branch = await findBranchById(branchId);
+  if (!branch) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Branch not found",
+        DATA_NOT_FOUND,
+        `No branch found with the ID: ${branchId}`
+      )
+    });
+  }
+
+  const serviceCategories = await findAllServiceCategoriesOfBranch(branch._id.toString());
+  const finalServicesCategories = await Promise.all(
+    serviceCategories.map(async (category) => {
+      const services = await findServicesByCategoryId(category._id.toString());
+
+      return {
+        categoryId: category._id.toString(),
+        categoryName: category.name,
+        services: services.map((service) => ({
+          id: service._id.toString(),
+          name: service.name,
+          description: service.description,
+          price: service.price,
+          duration: service.duration
+        }))
+      };
+    })
+  );
+
+  return SendResponse.success({
+    res,
+    message: "Website pricing page data fetched successfully",
+    data: {
+      individualServices: {
+        serviceCategories: finalServicesCategories
+      },
+      serviceCombos: [
+        // TODO: fetch from DB later
+        {
+          name: "Basic Package",
+          description: "Perfect for beginners who want to try our services",
+          price: 120,
+          currency: "AUD",
+          features: ["Eyebrow Threading & Tinting", "Express Facial", "Classic Manicure"]
+        },
+        {
+          name: "Premium Package",
+          description: "Our most popular package for complete beauty experience",
+          price: 220,
+          currency: "AUD",
+          features: [
+            "Full Face Threading & Tinting",
+            "Deluxe Facial Treatment",
+            "Eyelash Extensions",
+            "Henna Design (Small)"
+          ]
+        },
+        {
+          name: "Luxury Package",
+          description: "Ultimate beauty transformation for special occasions",
+          price: 350,
+          currency: "AUD",
+          features: [
+            "Complete Threading & Tinting",
+            "Premium Facial & Massage",
+            "Professional Makeup",
+            "Eyelash Extensions & Lifting",
+            "Elaborate Henna Design"
+          ]
+        }
+      ]
     }
   });
 }

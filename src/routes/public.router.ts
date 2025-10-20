@@ -3,9 +3,11 @@
 import { Router } from "express";
 import {
   applyToCareerPostHandler,
+  contactFormSubmitHandler,
   getSingleCareerPostPublicDataHandler,
   getWebsiteAboutPageDataHandler,
   getWebsiteCareersPageDataHandler,
+  getWebsiteContactPageDataHandler,
   getWebsiteFooterPublicDataHandler,
   getWebsiteHomePublicDataHandler,
   getWebsitePricingPageDataHandler,
@@ -14,7 +16,7 @@ import {
 } from "../controllers";
 import { asyncWrapper } from "../utils";
 import { validateResource } from "../middleware";
-import { applyCareerPostSchema } from "../schemas";
+import { applyCareerPostSchema, contactFormSubmitSchema } from "../schemas";
 import upload from "../utils/multer";
 
 const router = Router();
@@ -31,6 +33,12 @@ router.post(
   "/website/careers/apply/:careerId",
   validateResource(applyCareerPostSchema),
   asyncWrapper(applyToCareerPostHandler)
+);
+router.get("/website/contact-page", asyncWrapper(getWebsiteContactPageDataHandler));
+router.post(
+  "/website/submit/contact-form",
+  validateResource(contactFormSubmitSchema),
+  asyncWrapper(contactFormSubmitHandler)
 );
 
 export default router;

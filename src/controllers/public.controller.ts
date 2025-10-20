@@ -805,3 +805,28 @@ export async function applyToCareerPostHandler(
     data: null
   });
 }
+
+export async function getWebsiteContactPageDataHandler(req: Request, res: Response) {
+  // const functionName = getWebsiteContactPageDataHandler.name;
+
+  const branches = await findAllBranches();
+  const finalBranches = branches.map((branch) => {
+    const openingHourStr = formatWeeklySchedule(branch.weeklySchedule);
+    return {
+      id: branch._id.toString(),
+      name: branch.name,
+      address: branch.address,
+      phone: branch.phone,
+      email: branch.email,
+      openingHours: openingHourStr
+    };
+  });
+
+  return SendResponse.success({
+    res,
+    message: "Website contact page public data fetched successfully",
+    data: {
+      branches: finalBranches
+    }
+  });
+}

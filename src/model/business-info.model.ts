@@ -139,6 +139,9 @@ export class BusinessInfo {
   @Prop({ required: false, type: String })
   logo: string;
 
+  @Prop({ required: false, type: String, default: null })
+  copyRightMsg?: string | null;
+
   @Prop({ required: true, type: SocialInfo, _id: false })
   socialInfo: SocialInfo;
 

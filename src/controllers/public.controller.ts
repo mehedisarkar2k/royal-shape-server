@@ -3,7 +3,12 @@ import { v4 as uuid } from "uuid";
 import { SendErrorResponse, SendResponse } from "../utils";
 import { BusinessInfoModel, WeeklySchedule } from "../model";
 import { ApplicationServices, DATA_NOT_FOUND } from "../constants";
-import { findAllBranches, findAllEmployeesPaginated, findAllServiceCategories } from "../services";
+import {
+  findAllBranches,
+  findAllEmployeesPaginated,
+  findAllServiceCategories,
+  findServicesByCategoryId
+} from "../services";
 import { ReviewModel } from "../model/review.model";
 
 const buildErrorPayload = (
@@ -185,6 +190,7 @@ export async function getWebsiteHomePublicDataHandler(req: Request, res: Respons
         ctaButton2: homeData.heroSection.ctaButton2
       },
       promotions: [
+        // TODO: fetch from DB later
         {
           id: 1,
           title: "Limited Time Offer",
@@ -209,6 +215,318 @@ export async function getWebsiteHomePublicDataHandler(req: Request, res: Respons
       branches: finalBranches,
       showcase,
       testimonials
+    }
+  });
+}
+
+export async function getWebsiteFooterPublicDataHandler(req: Request, res: Response) {
+  const functionName = getWebsiteFooterPublicDataHandler.name;
+  const businessInfo = await BusinessInfoModel.findOne();
+  if (!businessInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Business info not found",
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const socialInfo = businessInfo.socialInfo;
+  if (!socialInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Social info not found",
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const footerData = {
+    businessName: businessInfo.name || "Royal Threading & Beauty",
+    businessDescription: businessInfo.description || "Elevating your natural beauty with professional beauty services.",
+    logo: businessInfo.logo,
+    socials: {
+      facebook: socialInfo.facebook || "",
+      instagram: socialInfo.instagram || "",
+      twitter: socialInfo.twitter || "",
+      linkedin: socialInfo.linkedin || "",
+      youtube: socialInfo.youtube || "",
+      tiktok: socialInfo.tiktok || ""
+    },
+    copyRightMsg: businessInfo.copyRightMsg || "© 2025 Royal Threading & Beauty. All rights reserved.",
+    contact: {
+      phone: businessInfo.phone,
+      email: businessInfo.email,
+      address: businessInfo.address
+    }
+  };
+
+  return SendResponse.success({
+    res,
+    message: "Website footer public data fetched successfully",
+    data: footerData
+  });
+}
+
+export async function getWebsiteServicesPageDataHandler(req: Request, res: Response) {
+  // const functionName = getWebsiteServicesPageDataHandler.name;
+
+  const serviceCategories = await findAllServiceCategories();
+  const finalServicesCategories = (serviceCategories || []).map((category) => ({
+    id: category._id.toString(),
+    name: category.name,
+    description: category.description,
+    image: category.thumbnail
+  }));
+
+  return SendResponse.success({
+    res,
+    message: "Website services page public data fetched successfully",
+    data: {
+      services: finalServicesCategories,
+      combos: [
+        // TODO: fetch from DB later
+        {
+          name: "Basic Package",
+          description: "Perfect for beginners who want to try our services",
+          price: 120,
+          mostPopular: false,
+          currency: "AUD",
+          features: ["Eyebrow Threading & Tinting", "Express Facial", "Classic Manicure"]
+        },
+        {
+          name: "Premium Package",
+          description: "Our most popular package for complete beauty experience",
+          price: 220,
+          currency: "AUD",
+          mostPopular: true,
+          features: [
+            "Full Face Threading & Tinting",
+            "Deluxe Facial Treatment",
+            "Eyelash Extensions",
+            "Henna Design (Small)"
+          ]
+        },
+        {
+          name: "Luxury Package",
+          description: "Ultimate beauty transformation for special occasions",
+          price: 350,
+          currency: "AUD",
+          mostPopular: false,
+          features: [
+            "Complete Threading & Tinting",
+            "Premium Facial & Massage",
+            "Professional Makeup",
+            "Eyelash Extensions & Lifting",
+            "Elaborate Henna Design"
+          ]
+        }
+      ]
+    }
+  });
+}
+
+export async function getWebsitePricingPageDataHandler(req: Request, res: Response) {
+  // const functionName = getWebsitePricingPageDataHandler.name;
+
+  const serviceCategories = await findAllServiceCategories();
+  const finalServicesCategories = await Promise.all(
+    serviceCategories.map(async (category) => {
+      const services = await findServicesByCategoryId(category._id.toString());
+
+      return {
+        categoryId: category._id.toString(),
+        categoryName: category.name,
+        services: services.map((service) => ({
+          id: service._id.toString(),
+          name: service.name,
+          description: service.description,
+          price: service.price,
+          duration: service.duration,
+          image: service.thumbnail
+        }))
+      };
+    })
+  );
+
+  return SendResponse.success({
+    res,
+    message: "Website pricing page data fetched successfully",
+    data: {
+      individualServices: {
+        serviceCategories: finalServicesCategories
+      },
+      serviceCombos: [
+        // TODO: fetch from DB later
+        {
+          name: "Basic Package",
+          description: "Perfect for beginners who want to try our services",
+          price: 120,
+          mostPopular: false,
+          currency: "AUD",
+          features: ["Eyebrow Threading & Tinting", "Express Facial", "Classic Manicure"]
+        },
+        {
+          name: "Premium Package",
+          description: "Our most popular package for complete beauty experience",
+          price: 220,
+          currency: "AUD",
+          mostPopular: true,
+          features: [
+            "Full Face Threading & Tinting",
+            "Deluxe Facial Treatment",
+            "Eyelash Extensions",
+            "Henna Design (Small)"
+          ]
+        },
+        {
+          name: "Luxury Package",
+          description: "Ultimate beauty transformation for special occasions",
+          price: 350,
+          currency: "AUD",
+          mostPopular: false,
+          features: [
+            "Complete Threading & Tinting",
+            "Premium Facial & Massage",
+            "Professional Makeup",
+            "Eyelash Extensions & Lifting",
+            "Elaborate Henna Design"
+          ]
+        }
+      ]
+    }
+  });
+}
+
+export async function getWebsiteAboutPageDataHandler(req: Request, res: Response) {
+  const functionName = getWebsiteAboutPageDataHandler.name;
+  const businessInfo = await BusinessInfoModel.findOne();
+  if (!businessInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Business info not found",
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const websiteInfo = businessInfo.websiteInfo;
+  if (!websiteInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Website info not found",
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const aboutData = websiteInfo.about;
+  if (!aboutData) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Website about data not found",
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const employees = await findAllEmployeesPaginated(1, 4);
+  const experts = employees.map((employee) => ({
+    id: employee._id.toString(),
+    name: employee.name,
+    designation: employee.jobRole,
+    profileImage: employee.profileImage,
+    specialization:
+      !employee.specialization || employee.specialization?.length === 0
+        ? ["Modern Patterns", "Special Events"]
+        : employee.specialization,
+    rating: employee.rating || 5
+  }));
+
+  const branches = await findAllBranches();
+  const finalBranches = branches.map((branch) => {
+    const openingHourStr = formatWeeklySchedule(branch.weeklySchedule);
+    return {
+      id: branch._id.toString(),
+      name: branch.name,
+      address: branch.address,
+      phone: branch.phone,
+      email: branch.email,
+      rating: branch.rating,
+      openingHours: openingHourStr
+    };
+  });
+
+  return SendResponse.success({
+    res,
+    message: "Website about page public data fetched successfully",
+    data: {
+      bodySections: aboutData.bodySections,
+      ourValues: {
+        // TODO: fetch from DB later
+        card1: {
+          title: "Excellence",
+          description:
+            "We are committed to delivering exceptional service and results that exceed your expectations every time."
+        },
+        card2: {
+          title: "Authenticity",
+          description:
+            "We honor traditional beauty techniques while embracing modern innovations to create authentic experiences."
+        },
+        card3: {
+          title: "Personalization",
+          description:
+            "Every client is unique, and we tailor our services to meet your individual needs and preferences."
+        },
+        card4: {
+          title: "Sustainability",
+          description:
+            "We are committed to eco-friendly practices and sustainable beauty solutions for a better tomorrow."
+        },
+        card5: {
+          title: "Innovation",
+          description:
+            "We continuously evolve our techniques and services to stay at the forefront of the beauty industry."
+        },
+        card6: {
+          title: "Community",
+          description:
+            "We believe in building strong relationships with our clients and contributing positively to our community."
+        }
+      },
+      joinOurJourneySocials: {
+        facebook: businessInfo.socialInfo.facebook || "",
+        instagram: businessInfo.socialInfo.instagram || "",
+        tiktok: businessInfo.socialInfo.tiktok || ""
+      },
+      branches: finalBranches,
+      experts
     }
   });
 }

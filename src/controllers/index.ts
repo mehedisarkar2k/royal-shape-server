@@ -9,3 +9,4 @@ export * from "./career.controller";
 export * from "./admin.controller";
 export * from "./engagement.controller";
 export * from "./public.controller";
+export * from "./promotion.controller";

@@ -12,6 +12,8 @@ import careerRouter from "./career.router";
 import adminRouter from "./admin.router";
 import engagementRouter from "./engagement.router";
 import publicRouter from "./public.router";
+import promotionRouter from "./promotion.router";
+import blogRouter from "./blog.router";
 
 import { SendResponse } from "../utils";
 
@@ -35,5 +37,7 @@ router.use("/career", careerRouter);
 router.use("/admin", adminRouter);
 router.use("/engagement", engagementRouter);
 router.use("/public", publicRouter);
+router.use("/promotion", promotionRouter);
+router.use("/blog", blogRouter);
 
 export default router;

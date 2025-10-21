@@ -93,6 +93,9 @@ class WebsiteAboutInfo {
 
 class ShowcaseInfo {
   @Prop({ required: true, type: String })
+  id: string;
+
+  @Prop({ required: true, type: String })
   altText: string;
 
   @Prop({ required: true, type: String })

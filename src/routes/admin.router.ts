@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { requireUser, validateResource } from "../middleware";
 import {
+  addWebsiteShowcaseHandler,
   createBusinessInfoDocumentIfNotExists,
+  deleteWebsiteShowcaseHandler,
+  getAllWebsiteShowcaseHandler,
   getDashboardOverviewDataHandler,
   getGeneralSettingsDataHandler,
   getSocialLinksDataHandler,
@@ -16,6 +19,7 @@ import {
 } from "../controllers";
 import { asyncWrapper } from "../utils";
 import {
+  addWebsiteShowcaseSchema,
   postGeneralSettingsDataSchema,
   postSocialMediaLinksDataSchema,
   postWebsiteAboutDataSchema,
@@ -69,4 +73,12 @@ router.post(
 
 router.get("/dashboard/overview", requireUser, asyncWrapper(getDashboardOverviewDataHandler));
 
+router.get("/website/showcase/all", requireUser, asyncWrapper(getAllWebsiteShowcaseHandler));
+router.post(
+  "/website/showcase/add",
+  requireUser,
+  validateResource(addWebsiteShowcaseSchema),
+  asyncWrapper(addWebsiteShowcaseHandler)
+);
+router.delete("/website/showcase/delete/:showcaseId", requireUser, asyncWrapper(deleteWebsiteShowcaseHandler));
 export default router;

@@ -39,7 +39,7 @@ export async function createBlogHandler(
     author: data.author.trim(),
     title: data.title.trim(),
     briefDescription: data.briefDescription.trim(),
-    content: data.content.trim(),
+    content: data.content,
     category: data.category.trim(),
     tags: data.tags?.map((tag) => tag.trim()) || [],
     featuredImage: data.featuredImage,
@@ -152,7 +152,10 @@ export async function getSingleBlogHandler(req: Request, res: Response) {
   });
 }
 
-export async function editBlogHandler(req: Request, res: Response) {
+export async function editBlogHandler(
+  req: Request<Record<string, never>, Record<string, never>, CreateBlogInput>,
+  res: Response
+) {
   const functionName = editBlogHandler.name;
   const { blogId } = req.params;
   const data = req.body;
@@ -175,10 +178,12 @@ export async function editBlogHandler(req: Request, res: Response) {
 
   blog.title = data.title?.trim() || blog.title;
   blog.briefDescription = data.briefDescription?.trim() || blog.briefDescription;
-  blog.content = data.content?.trim() || blog.content;
+  blog.author = data.author || blog.author;
+  blog.content = data.content || blog.content;
   blog.category = data.category?.trim() || blog.category;
   blog.tags = data.tags ? data.tags.map((tag: string) => tag.trim()) : blog.tags;
   blog.featuredImage = data.featuredImage || blog.featuredImage;
+  blog.status = data.shouldPublishImmediately ? BlogStatus.PUBLISHED : blog.status;
 
   await blog.save();
 
@@ -244,13 +249,7 @@ export async function toggleBlogStatusHandler(req: Request, res: Response) {
   return SendResponse.success({
     res,
     message: "Blog status updated successfully",
-    data: {
-      blog: {
-        id: blog._id.toString(),
-        title: blog.title,
-        status: blog.status
-      }
-    }
+    data: null
   });
 }
 

@@ -83,3 +83,11 @@ export const postSocialMediaLinksDataSchema = object({
   })
 });
 export type PostSocialMediaLinksDataType = TypeOf<typeof postSocialMediaLinksDataSchema>["body"];
+
+export const addWebsiteShowcaseSchema = object({
+  body: object({
+    image: string().min(1),
+    altText: string().min(1)
+  })
+});
+export type AddWebsiteShowcaseType = TypeOf<typeof addWebsiteShowcaseSchema>["body"];

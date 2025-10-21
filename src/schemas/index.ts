@@ -9,3 +9,4 @@ export * from "./career.schema";
 export * from "./admin.schema";
 export * from "./engagement.schema";
 export * from "./promotion.schema";
+export * from "./blog.schema";

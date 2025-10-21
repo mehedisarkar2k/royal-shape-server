@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
 import { DateTime } from "luxon";
 import {
+  AddWebsiteShowcaseType,
   PostGeneralSettingsDataType,
   PostSocialMediaLinksDataType,
   PostWebsiteAboutDataType,
@@ -1103,4 +1104,194 @@ export async function getDashboardOverviewDataHandler(req: Request, res: Respons
       )
     });
   }
+}
+
+export async function getAllWebsiteShowcaseHandler(req: Request, res: Response) {
+  const functionName = getAllWebsiteShowcaseHandler.name;
+
+  const businessInfo = await BusinessInfoModel.findOne();
+  if (!businessInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Business info not found",
+        DATA_NOT_FOUND,
+        "Business info document not found"
+      )
+    });
+  }
+
+  const websiteInfo = businessInfo.websiteInfo;
+  if (!websiteInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Website info not found",
+        DATA_NOT_FOUND,
+        "Website info not found"
+      )
+    });
+  }
+
+  const showcaseData = websiteInfo.showcase || [];
+
+  return SendResponse.success({
+    res,
+    message: "Website showcase data fetched successfully",
+    data: {
+      showcases: showcaseData.map((showcase) => ({
+        id: showcase.id,
+        altText: showcase.altText,
+        image: showcase.url
+      }))
+    }
+  });
+}
+
+export async function addWebsiteShowcaseHandler(
+  req: Request<Record<string, never>, Record<string, never>, AddWebsiteShowcaseType>,
+  res: Response
+) {
+  const functionName = addWebsiteShowcaseHandler.name;
+  const data = req.body;
+
+  const businessInfo = await BusinessInfoModel.findOne();
+  if (!businessInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Business info not found",
+        DATA_NOT_FOUND,
+        "Business info document not found"
+      )
+    });
+  }
+
+  const websiteInfo = businessInfo.websiteInfo;
+  if (!websiteInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Website info not found",
+        DATA_NOT_FOUND,
+        "Website info not found"
+      )
+    });
+  }
+
+  websiteInfo.showcase =
+    websiteInfo.showcase && websiteInfo.showcase.length > 0
+      ? [
+          ...websiteInfo.showcase,
+          {
+            id: uuid(),
+            altText: data.altText,
+            url: data.image
+          }
+        ]
+      : [
+          {
+            id: uuid(),
+            altText: data.altText,
+            url: data.image
+          }
+        ];
+
+  businessInfo.markModified("websiteInfo.showcase");
+
+  await businessInfo.save();
+
+  return SendResponse.success({
+    res,
+    message: "Website showcase added successfully",
+    data: null
+  });
+}
+
+export async function deleteWebsiteShowcaseHandler(req: Request, res: Response) {
+  const functionName = deleteWebsiteShowcaseHandler.name;
+  const { showcaseId } = req.params;
+
+  const businessInfo = await BusinessInfoModel.findOne();
+  if (!businessInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Business info not found",
+        DATA_NOT_FOUND,
+        "Business info document not found"
+      )
+    });
+  }
+
+  const websiteInfo = businessInfo.websiteInfo;
+  if (!websiteInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Website info not found",
+        DATA_NOT_FOUND,
+        "Website info not found"
+      )
+    });
+  }
+
+  if (!websiteInfo.showcase || websiteInfo.showcase.length === 0) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Showcase not found",
+        DATA_NOT_FOUND,
+        "No showcase items to delete"
+      )
+    });
+  }
+
+  const initialLength = websiteInfo.showcase.length;
+  websiteInfo.showcase = websiteInfo.showcase.filter((showcase) => showcase.id !== showcaseId);
+
+  if (websiteInfo.showcase.length === initialLength) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Showcase not found",
+        DATA_NOT_FOUND,
+        `No showcase item found with id: ${showcaseId}`
+      )
+    });
+  }
+
+  businessInfo.markModified("websiteInfo.showcase");
+
+  await businessInfo.save();
+
+  return SendResponse.success({
+    res,
+    message: "Website showcase deleted successfully",
+    data: null
+  });
 }

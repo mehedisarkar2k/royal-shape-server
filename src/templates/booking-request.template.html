@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Booking Request Submitted</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      /* Minimal responsive tweaks (kept small for email compatibility) */
+      @media only screen and (max-width: 600px) {
+        .container {
+          width: 100% !important;
+        }
+        .content {
+          padding: 20px !important;
+        }
+        .two-col td {
+          display: block !important;
+          width: 100% !important;
+        }
+        .btn {
+          display: block !important;
+          width: 100% !important;
+          box-sizing: border-box;
+        }
+      }
+      /* Hide preheader text visually but keep it for preview snippets */
+      .preheader {
+        display: none !important;
+        visibility: hidden;
+        mso-hide: all;
+        font-size: 1px;
+        line-height: 1px;
+        max-height: 0;
+        max-width: 0;
+        opacity: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #f4f5f7;
+      font-family:
+        -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif;
+      color: #111111;
+    "
+  >
+    <!-- Preheader (appears in inbox preview) -->
+    <span class="preheader">Your booking request has been received — we'll confirm it shortly.</span>
+
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+      <tr>
+        <td align="center" style="padding: 32px 12px">
+          <!-- Outer / container -->
+          <table
+            class="container"
+            width="600"
+            cellpadding="0"
+            cellspacing="0"
+            role="presentation"
+            style="
+              width: 600px;
+              max-width: 600px;
+              background-color: #ffffff;
+              border-radius: 16px;
+              overflow: hidden;
+              box-shadow: 0 8px 24px rgba(17, 17, 17, 0.08);
+            "
+          >
+            <!-- Top accent bar -->
+            <tr>
+              <td style="background: linear-gradient(135deg, #da1f5c 0%, #e84a7a 100%); height: 6px"></td>
+            </tr>
+
+            <!-- Header -->
+            <tr>
+              <td style="padding: 32px 24px 24px; text-align: center; background-color: #ffffff">
+                <!-- Logo placeholder -->
+                <img
+                  src="https://pub-143c0179908045b5806a90fec6b91bae.r2.dev/website-images/1760596964765-e98d68c1-8c1b-4bb5-b32a-4a53cbae4246-1760596964758---logo.svg"
+                  width="100"
+                  height="100"
+                  alt="Company logo"
+                  style="display: block; margin: 0 auto 20px; border: 0; outline: none; text-decoration: none"
+                />
+                <h1
+                  style="
+                    margin: 0;
+                    font-size: 28px;
+                    line-height: 36px;
+                    color: #1a1a1a;
+                    font-weight: 700;
+                    letter-spacing: -0.5px;
+                  "
+                >
+                  Booking Request Submitted
+                </h1>
+                <p style="margin: 12px 0 0; font-size: 16px; color: #6b7280; line-height: 1.5">
+                  Thanks, {{name}} — we received your booking request.
+                </p>
+                <div
+                  style="
+                    width: 80px;
+                    height: 4px;
+                    background: linear-gradient(90deg, #da1f5c 0%, #e84a7a 100%);
+                    margin: 20px auto;
+                    border-radius: 2px;
+                  "
+                ></div>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td class="content" style="padding: 0 32px 32px; background-color: #ffffff">
+                <table
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  role="presentation"
+                  style="border-collapse: collapse"
+                >
+                  <!-- Confirmation card -->
+                  <tr>
+                    <td
+                      style="
+                        padding: 24px;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 12px;
+                        background: linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%);
+                      "
+                    >
+                      <p style="margin: 0 0 16px; font-size: 16px; color: #1a1a1a; line-height: 1.6">
+                        Hi <strong>{{name}}</strong>,
+                      </p>
+                      <p style="margin: 0 0 20px; font-size: 15px; color: #374151; line-height: 1.6">
+                        We have successfully received your booking request. Below are the details we have on record:
+                      </p>
+
+                      <!-- Booking details -->
+                      <table
+                        width="100%"
+                        cellpadding="0"
+                        cellspacing="0"
+                        role="presentation"
+                        style="
+                          margin-top: 16px;
+                          border-collapse: collapse;
+                          background-color: #ffffff;
+                          border-radius: 10px;
+                          overflow: hidden;
+                        "
+                      >
+                        <tr>
+                          <td
+                            style="
+                              padding: 14px 16px;
+                              font-size: 14px;
+                              color: #da1f5c;
+                              width: 36%;
+                              font-weight: 600;
+                              border-bottom: 1px solid #f3f4f6;
+                            "
+                          >
+                            Booking ID
+                          </td>
+                          <td
+                            style="
+                              padding: 14px 16px;
+                              font-size: 14px;
+                              color: #1a1a1a;
+                              border-bottom: 1px solid #f3f4f6;
+                            "
+                          >
+                            <strong>{{booking_id}}</strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            style="
+                              padding: 14px 16px;
+                              font-size: 14px;
+                              color: #da1f5c;
+                              font-weight: 600;
+                              border-bottom: 1px solid #f3f4f6;
+                            "
+                          >
+                            Service
+                          </td>
+                          <td
+                            style="
+                              padding: 14px 16px;
+                              font-size: 14px;
+                              color: #374151;
+                              border-bottom: 1px solid #f3f4f6;
+                            "
+                          >
+                            {{service}}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            style="
+                              padding: 14px 16px;
+                              font-size: 14px;
+                              color: #da1f5c;
+                              font-weight: 600;
+                              border-bottom: 1px solid #f3f4f6;
+                            "
+                          >
+                            Date & Time
+                          </td>
+                          <td
+                            style="
+                              padding: 14px 16px;
+                              font-size: 14px;
+                              color: #374151;
+                              border-bottom: 1px solid #f3f4f6;
+                            "
+                          >
+                            {{date}} at {{time}}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 14px 16px; font-size: 14px; color: #da1f5c; font-weight: 600">Amount</td>
+                          <td style="padding: 14px 16px; font-size: 14px; color: #374151">
+                            <strong>{{amount}}</strong>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- Next steps / notes -->
+                  <tr>
+                    <td style="padding: 24px 0 0">
+                      <div
+                        style="
+                          background: linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%);
+                          border-left: 4px solid #da1f5c;
+                          padding: 20px;
+                          border-radius: 0 12px 12px 0;
+                          border: 1px solid #e5e7eb;
+                          border-left: 4px solid #da1f5c;
+                        "
+                      >
+                        <p style="margin: 0 0 12px; font-size: 15px; color: #1a1a1a; font-weight: 600">
+                          What happens next?
+                        </p>
+                        <ul style="margin: 0 0 0 20px; padding: 0; color: #374151; font-size: 14px; line-height: 1.7">
+                          <li style="margin-bottom: 8px">
+                            We'll confirm availability and send a final confirmation email or call.
+                          </li>
+                          <li style="margin-bottom: 8px">
+                            If we need more details, our team will contact you at the phone/email on file.
+                          </li>
+                          <li style="margin-bottom: 0">You'll receive an update within 24 hours.</li>
+                        </ul>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- Support -->
+                  <tr>
+                    <td style="padding: 24px 0 0">
+                      <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6">
+                        Need help? Reply to this email or contact our support:
+                        <a
+                          href="mailto:support@example.com"
+                          style="color: #da1f5c; text-decoration: none; font-weight: 600"
+                          >{{supportEmail}}</a
+                        >
+                        · <span style="color: #374151; font-weight: 500">{{supportPhone}}</span>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                style="
+                  padding: 24px 32px;
+                  text-align: center;
+                  background: linear-gradient(135deg, #f8f9fa 0%, #fafbfc 100%);
+                  font-size: 13px;
+                  color: #6b7280;
+                  border-top: 1px solid #e5e7eb;
+                "
+              >
+                <p style="margin: 0 0 8px; line-height: 1.6">{{companyName}} · {{companyAddress}}</p>
+                <p style="margin: 0; line-height: 1.6">
+                  If you didn't request this booking, please
+                  <a href="mailto:support@example.com" style="color: #da1f5c; text-decoration: none; font-weight: 600"
+                    >contact support</a
+                  >.
+                </p>
+              </td>
+            </tr>
+          </table>
+          <!-- end container -->
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

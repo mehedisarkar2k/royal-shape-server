@@ -6,7 +6,8 @@ import {
   findCustomerByEmail,
   countAllCustomers,
   findCustomerById,
-  findAllCustomersWithBookingDetailsPaginated
+  findAllCustomersWithBookingDetailsPaginated,
+  deleteCustomerById
 } from "../services";
 import { SendErrorResponse, SendResponse } from "../utils";
 import { ApplicationServices, CONFLICT_ERROR, DATA_NOT_FOUND } from "../constants";
@@ -88,7 +89,8 @@ export async function getAllCustomersHandler(req: Request, res: Response) {
     if (!customer.bookings || customer.bookings.length === 0) {
       return {
         id: customer._id.toString(),
-        name: `${customer.firstName} ${customer.lastName || ""}`.trim(),
+        firstName: customer.firstName.trim(),
+        lastName: (customer.lastName || "").trim(),
         email: customer.email,
         description: customer.description,
         phone: customer.phone,
@@ -121,7 +123,8 @@ export async function getAllCustomersHandler(req: Request, res: Response) {
         : 0;
     return {
       id: customer._id.toString(),
-      name: `${customer.firstName} ${customer.lastName || ""}`.trim(),
+      firstName: customer.firstName.trim(),
+      lastName: (customer.lastName || "").trim(),
       email: customer.email,
       description: customer.description,
       phone: customer.phone,
@@ -222,5 +225,33 @@ export async function updateCustomerHandler(
         id: customer._id.toString()
       }
     }
+  });
+}
+
+export async function deleteCustomerHandler(req: Request<{ customerId: string }>, res: Response) {
+  const functionName = deleteCustomerHandler.name;
+  const { customerId } = req.params;
+
+  const customer = await findCustomerById(customerId);
+  if (!customer) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Customer not found",
+        DATA_NOT_FOUND,
+        "Customer not found"
+      )
+    });
+  }
+
+  await deleteCustomerById(customerId);
+
+  return SendResponse.success({
+    res,
+    message: "Customer deleted successfully",
+    data: null
   });
 }

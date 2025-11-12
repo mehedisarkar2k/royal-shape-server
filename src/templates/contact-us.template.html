@@ -23,7 +23,7 @@
             "
           >
             <tr>
-              <td style="background-color: #f54a00; height: 8px"></td>
+              <td style="background: linear-gradient(135deg, #da1f5c 0%, #e84a7a 100%); height: 6px"></td>
             </tr>
             <tr>
               <td style="text-align: center; padding: 30px 40px 10px">
@@ -32,29 +32,36 @@
                     <td align="center">
                       <div
                         style="
-                          background-color: #fff;
-                          border-radius: 50%;
+                          background: linear-gradient(135deg, #da1f5c 0%, #e84a7a 100%);
+                          border-radius: 20px;
                           width: 80px;
                           height: 80px;
                           margin: 0 auto;
                           display: flex;
                           align-items: center;
                           justify-content: center;
-                          box-shadow: 0 4px 10px rgba(245, 74, 0, 0.2);
-                          font-size: 36px;
-                          margin-bottom: 20px;
-                          border: 2px solid #f54a00;
+                          box-shadow: 0 8px 24px rgba(218, 31, 92, 0.3);
+                          font-size: 40px;
+                          margin-bottom: 24px;
                         "
                       >
-                        <span style="display: block; text-align: center">📩</span>
+                        <span style="display: block; text-align: center; filter: brightness(0) invert(1)">📩</span>
                       </div>
-                      <h1 style="color: #333333; margin: 0; font-size: 28px; font-weight: 600">
+                      <h1 style="color: #1a1a1a; margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.5px">
                         New Contact Form Submission
                       </h1>
-                      <p style="color: #666666; margin-top: 8px; font-size: 16px">
+                      <p style="color: #6b7280; margin-top: 12px; font-size: 16px; line-height: 1.5">
                         A customer has reached out via the Royal Threading and Beauty website
                       </p>
-                      <div style="width: 60px; height: 4px; background-color: #f54a00; margin: 20px auto"></div>
+                      <div
+                        style="
+                          width: 80px;
+                          height: 4px;
+                          background: linear-gradient(90deg, #da1f5c 0%, #e84a7a 100%);
+                          margin: 24px auto;
+                          border-radius: 2px;
+                        "
+                      ></div>
                     </td>
                   </tr>
                 </table>
@@ -66,61 +73,75 @@
                   width="100%"
                   cellpadding="0"
                   cellspacing="0"
-                  style="background-color: #fafafa; border-radius: 12px; padding: 25px; margin-bottom: 20px"
+                  style="
+                    background: linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%);
+                    border-radius: 16px;
+                    padding: 28px;
+                    margin-bottom: 24px;
+                    border: 1px solid #e5e7eb;
+                  "
                 >
                   <tr>
-                    <td style="color: #333333; font-size: 16px; line-height: 26px">
+                    <td style="color: #1a1a1a; font-size: 16px; line-height: 28px">
                       <table width="100%" cellpadding="0" cellspacing="0">
                         <tr>
-                          <td width="130" style="padding: 12px 0; vertical-align: top">
-                            <strong style="color: #f54a00; font-size: 16px">Name:</strong>
+                          <td width="130" style="padding: 14px 0; vertical-align: top">
+                            <strong style="color: #da1f5c; font-size: 15px; font-weight: 600">Name:</strong>
                           </td>
-                          <td style="padding: 12px 0; font-size: 16px">{{name}}</td>
-                        </tr>
-                        <tr style="background-color: #f2f2f2; border-radius: 8px">
-                          <td width="130" style="padding: 12px 8px; vertical-align: top">
-                            <strong style="color: #f54a00; font-size: 16px">Email:</strong>
-                          </td>
-                          <td style="padding: 12px 8px; font-size: 16px">{{email}}</td>
+                          <td style="padding: 14px 0; font-size: 16px; color: #374151">{{name}}</td>
                         </tr>
                         <tr>
-                          <td width="130" style="padding: 12px 0; vertical-align: top">
-                            <strong style="color: #f54a00; font-size: 16px">Phone:</strong>
+                          <td colspan="2" style="padding: 0">
+                            <div style="height: 1px; background-color: #e5e7eb; margin: 4px 0"></div>
                           </td>
-                          <td style="padding: 12px 0; font-size: 16px">{{phone}}</td>
-                        </tr>
-                        <tr style="background-color: #f2f2f2; border-radius: 8px">
-                          <td width="130" style="padding: 12px 8px; vertical-align: top">
-                            <strong style="color: #f54a00; font-size: 16px">Meeting Type:</strong>
-                          </td>
-                          <td style="padding: 12px 8px; font-size: 16px">{{meetingType}}</td>
                         </tr>
                         <tr>
-                          <td width="130" style="padding: 12px 0; vertical-align: top">
-                            <strong style="color: #f54a00; font-size: 16px">Preferred Date:</strong>
+                          <td width="130" style="padding: 14px 0; vertical-align: top">
+                            <strong style="color: #da1f5c; font-size: 15px; font-weight: 600">Email:</strong>
                           </td>
-                          <td style="padding: 12px 0; font-size: 16px">{{preferredDate}}</td>
+                          <td style="padding: 14px 0; font-size: 16px; color: #374151">{{email}}</td>
+                        </tr>
+                        <tr>
+                          <td colspan="2" style="padding: 0">
+                            <div style="height: 1px; background-color: #e5e7eb; margin: 4px 0"></div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td width="130" style="padding: 14px 0; vertical-align: top">
+                            <strong style="color: #da1f5c; font-size: 15px; font-weight: 600">Topic:</strong>
+                          </td>
+                          <td style="padding: 14px 0; font-size: 16px; color: #374151">{{topic}}</td>
                         </tr>
                       </table>
                     </td>
                   </tr>
                 </table>
 
-                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px">
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px">
                   <tr>
                     <td>
-                      <h3 style="color: #f54a00; margin: 0 0 12px 0; font-size: 18px; font-weight: 600">
-                        Message from Customer:
+                      <h3
+                        style="
+                          color: #da1f5c;
+                          margin: 0 0 16px 0;
+                          font-size: 18px;
+                          font-weight: 700;
+                          letter-spacing: -0.3px;
+                        "
+                      >
+                        Message from Customer
                       </h3>
                       <div
                         style="
-                          background-color: #fafafa;
-                          border-left: 4px solid #f54a00;
-                          padding: 20px;
-                          border-radius: 0 8px 8px 0;
-                          color: #333333;
+                          background: linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%);
+                          border-left: 4px solid #da1f5c;
+                          padding: 24px;
+                          border-radius: 0 12px 12px 0;
+                          color: #374151;
                           font-size: 16px;
-                          line-height: 1.6;
+                          line-height: 1.7;
+                          border: 1px solid #e5e7eb;
+                          border-left: 4px solid #da1f5c;
                         "
                       >
                         {{message}}
@@ -128,107 +149,39 @@
                     </td>
                   </tr>
                 </table>
-
-                <table width="100%" cellpadding="0" cellspacing="0" style="margin: 25px 0">
-                  <tr>
-                    <td align="center">
-                      <a
-                        href="#"
-                        style="
-                          display: inline-block;
-                          background-color: #f54a00;
-                          color: #ffffff;
-                          text-decoration: none;
-                          padding: 14px 30px;
-                          border-radius: 50px;
-                          font-weight: 600;
-                          font-size: 16px;
-                          margin: 10px 0;
-                          box-shadow: 0 4px 10px rgba(245, 74, 0, 0.2);
-                        "
-                        >Respond to Customer</a
-                      >
-                    </td>
-                  </tr>
-                </table>
               </td>
             </tr>
             <tr>
-              <td style="background-color: #fafafa; padding: 25px 40px; border-top: 1px solid #eeeeee">
+              <td
+                style="
+                  background: linear-gradient(135deg, #f8f9fa 0%, #fafbfc 100%);
+                  padding: 32px 40px;
+                  border-top: 1px solid #e5e7eb;
+                "
+              >
                 <table width="100%" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="text-align: center; color: #79ac79; font-size: 14px; padding-bottom: 15px">
+                    <td
+                      style="
+                        text-align: center;
+                        color: #6b7280;
+                        font-size: 14px;
+                        line-height: 1.6;
+                        padding-bottom: 20px;
+                      "
+                    >
                       This email was automatically generated from the Contact Us form on Royal Threading and Beauty
                       website.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td align="center" style="padding: 10px 0">
-                      <div style="display: inline-block; margin: 0 8px">
-                        <a
-                          href="#"
-                          style="
-                            display: inline-block;
-                            width: 32px;
-                            height: 32px;
-                            background-color: #f54a00;
-                            border-radius: 50%;
-                            text-align: center;
-                            line-height: 32px;
-                            color: white;
-                            text-decoration: none;
-                            font-size: 16px;
-                          "
-                          >f</a
-                        >
-                      </div>
-                      <div style="display: inline-block; margin: 0 8px">
-                        <a
-                          href="#"
-                          style="
-                            display: inline-block;
-                            width: 32px;
-                            height: 32px;
-                            background-color: #f54a00;
-                            border-radius: 50%;
-                            text-align: center;
-                            line-height: 32px;
-                            color: white;
-                            text-decoration: none;
-                            font-size: 16px;
-                          "
-                          >t</a
-                        >
-                      </div>
-                      <div style="display: inline-block; margin: 0 8px">
-                        <a
-                          href="#"
-                          style="
-                            display: inline-block;
-                            width: 32px;
-                            height: 32px;
-                            background-color: #f54a00;
-                            border-radius: 50%;
-                            text-align: center;
-                            line-height: 32px;
-                            color: white;
-                            text-decoration: none;
-                            font-size: 16px;
-                          "
-                          >in</a
-                        >
-                      </div>
                     </td>
                   </tr>
                   <tr>
                     <td
                       style="
                         text-align: center;
-                        color: #999999;
-                        font-size: 12px;
-                        padding-top: 15px;
-                        border-top: 1px solid #eeeeee;
-                        margin-top: 15px;
+                        color: #9ca3af;
+                        font-size: 13px;
+                        padding-top: 20px;
+                        border-top: 1px solid #e5e7eb;
                       "
                     >
                       &copy; {{copyRightYear}} Royal Threading and Beauty. All rights reserved.

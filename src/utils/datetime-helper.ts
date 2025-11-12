@@ -96,3 +96,39 @@ export function getTimeDifferenceInMinutes(start: string, end: string): number {
 
   return diff;
 }
+
+export function calculateTimeDurationInMinutes(startTime: string, endTime: string): number {
+  // Parse time strings in format "h:mm a"
+  const parseTime = (timeStr: string): number => {
+    const [time, period] = timeStr.split(" ");
+    const [hours, minutes] = time.split(":").map(Number);
+    let totalMinutes = minutes;
+
+    if (period === "PM" && hours !== 12) {
+      totalMinutes += (hours + 12) * 60;
+    } else if (period === "AM" && hours === 12) {
+      totalMinutes += 0;
+    } else {
+      totalMinutes += hours * 60;
+    }
+
+    return totalMinutes;
+  };
+
+  const startMinutes = parseTime(startTime);
+  const endMinutes = parseTime(endTime);
+  const durationMinutes = endMinutes - startMinutes;
+
+  return durationMinutes;
+}
+
+export function calculateTimeDurationInMinutesString(startTime: string, endTime: string): string {
+  const durationMinutes = calculateTimeDurationInMinutes(startTime, endTime);
+  if (durationMinutes < 60) {
+    return `${durationMinutes} m`;
+  } else {
+    const hours = Math.floor(durationMinutes / 60);
+    const minutes = durationMinutes % 60;
+    return minutes > 0 ? `${hours}hr ${minutes}m` : `${hours}hr`;
+  }
+}

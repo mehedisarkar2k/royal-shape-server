@@ -12,3 +12,5 @@ export * from "./job-ad.model";
 export * from "./blog.model";
 export * from "./business-info.model";
 export * from "./booking.model";
+export * from "./career.model";
+export * from "./promotion.model";

@@ -1,4 +1,4 @@
-import { nativeEnum, object, string, TypeOf } from "zod";
+import { nativeEnum, number, object, string, TypeOf } from "zod";
 import { addressSchema, phoneSchema } from "./common.schema";
 import { BranchStatus } from "../constants";
 
@@ -29,7 +29,9 @@ export const createBranchSchema = object({
       sunday: openingHour
     }),
     establishedYear: string().optional().nullable(),
-    description: string().optional().nullable()
+    description: string().optional().nullable(),
+    latitude: number({ required_error: "Latitude is required!" }),
+    longitude: number({ required_error: "Longitude is required!" })
   })
 });
 

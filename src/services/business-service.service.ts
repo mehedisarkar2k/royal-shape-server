@@ -8,6 +8,21 @@ export async function findAllServiceCategories() {
   return ServiceCategoryModel.find();
 }
 
+export async function findAllServiceCategoriesOfBranch(branchId: string) {
+  return ServiceCategoryModel.find({ "branches.branchId": branchId });
+}
+
+export async function findAllServiceCategoriesPaginated(page: number, limit: number) {
+  return ServiceCategoryModel.find()
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit);
+}
+
+export async function countServiceCategories() {
+  return ServiceCategoryModel.countDocuments({});
+}
+
 export async function createService(data: Service) {
   return ServiceModel.create(data);
 }
@@ -22,4 +37,24 @@ export async function findServicesByIds(serviceIds: string[]) {
 
 export async function findServiceCategoryById(categoryId: string) {
   return ServiceCategoryModel.findById(categoryId);
+}
+
+export async function countServicesOfCategory(categoryId: string) {
+  return ServiceModel.countDocuments({ categoryId });
+}
+
+export async function findServiceById(serviceId: string) {
+  return ServiceModel.findById(serviceId);
+}
+
+export async function deleteServiceCategoryById(categoryId: string) {
+  return ServiceCategoryModel.findByIdAndDelete(categoryId);
+}
+
+export async function deleteServicesByCategoryId(categoryId: string) {
+  return ServiceModel.deleteMany({ categoryId });
+}
+
+export async function deleteServiceById(serviceId: string) {
+  return ServiceModel.findByIdAndDelete(serviceId);
 }

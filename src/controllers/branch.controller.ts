@@ -49,7 +49,9 @@ export async function createBranchHandler(
 
   const newBranch = await createBranch({
     ...data,
-    phone: { ...data.phone, e164: `${data.phone.countryCode}${data.phone.number}` }
+    phone: { ...data.phone, e164: `${data.phone.countryCode}${data.phone.number}` },
+    latitude: data.latitude,
+    longitude: data.longitude
   });
 
   return SendResponse.created({
@@ -136,6 +138,8 @@ export async function updateBranchHandler(
   branch.weeklySchedule = data.weeklySchedule;
   branch.establishedYear = data.establishedYear || null;
   branch.description = data.description || null;
+  branch.latitude = data.latitude;
+  branch.longitude = data.longitude;
 
   branch.markModified("weeklySchedule");
   await branch.save();
@@ -200,7 +204,9 @@ export async function getBranchByIdHandler(req: Request<{ id: string }>, res: Re
         weeklySchedule: branch.weeklySchedule,
         establishedYear: branch.establishedYear,
         description: branch.description,
-        rating: branch.rating
+        rating: branch.rating,
+        latitude: branch.latitude,
+        longitude: branch.longitude
       }
     }
   });

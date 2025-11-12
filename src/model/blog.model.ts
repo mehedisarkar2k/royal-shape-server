@@ -1,5 +1,6 @@
-import { ModelOptions, Prop } from "@typegoose/typegoose";
+import { getModelForClass, ModelOptions, Prop } from "@typegoose/typegoose";
 import { BlogStatus } from "../constants";
+import { Document } from "mongoose";
 
 export class Like {
   @Prop({ required: true, type: String })
@@ -58,3 +59,6 @@ export class Blog {
   @Prop({ required: false, type: Array<Comment>, default: [], _id: false })
   comments?: Comment[] | [];
 }
+
+export const BlogModel = getModelForClass(Blog);
+export type BlogDocumentType = Blog & Document;

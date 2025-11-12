@@ -23,3 +23,7 @@ export async function findAllEmployeesPaginated(page: number, limit: number) {
 export async function countAllEmployees() {
   return EmployeeModel.countDocuments({});
 }
+
+export async function deleteEmployeeById(employeeId: string) {
+  return EmployeeModel.findByIdAndDelete(employeeId);
+}

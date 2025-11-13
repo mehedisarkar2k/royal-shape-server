@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
 import { SendErrorResponse, SendResponse } from "../utils";
-import { BusinessInfoModel, WeeklySchedule } from "../model";
+import { BusinessInfoModel, PromotionModel, WeeklySchedule } from "../model";
 import { ApplicationServices, DATA_NOT_FOUND, INPUT_MISSING, UNEXPECTED_ERROR } from "../constants";
 import {
   findAllBranches,
@@ -182,6 +182,8 @@ export async function getWebsiteHomePublicDataHandler(req: Request, res: Respons
     comment: review.comment
   }));
 
+  const promotions = await PromotionModel.find({ isActive: true }).sort({ createdAt: -1 });
+
   return SendResponse.success({
     res,
     message: "Website home public data fetched successfully",
@@ -196,27 +198,18 @@ export async function getWebsiteHomePublicDataHandler(req: Request, res: Respons
         ctaButton1: homeData.heroSection.ctaButton1,
         ctaButton2: homeData.heroSection.ctaButton2
       },
-      promotions: [
-        // TODO: fetch from DB later
-        {
-          id: 1,
-          title: "Limited Time Offer",
-          description: "Get 20% off on your first purchase",
-          image:
-            "https://pub-143c0179908045b5806a90fec6b91bae.r2.dev/website-images/1760513743423-7bf4a5d3-e979-43e3-bf6f-1d4f54d07476-1760513743418---threading.png",
-          buttonText: "Book Now",
-          buttonLink: "https://example.com/promo1"
-        },
-        {
-          id: 2,
-          title: "Free Shipping",
-          description: "Enjoy free shipping on orders over $50",
-          image:
-            "https://pub-143c0179908045b5806a90fec6b91bae.r2.dev/website-images/1760513743423-7bf4a5d3-e979-43e3-bf6f-1d4f54d07476-1760513743418---threading.png",
-          buttonText: "Shop Now",
-          buttonLink: "https://example.com/promo2"
-        }
-      ],
+      promotions: promotions.map((promo) => ({
+        id: promo._id.toString(),
+        title: promo.title,
+        titleColor: promo.titleColor,
+        description: promo.description,
+        descriptionColor: promo.descriptionColor,
+        image: promo.bannerImage,
+        buttonText: promo.buttonText,
+        buttonBgColor: promo.buttonBgColor,
+        buttonTextColor: promo.buttonTextColor,
+        buttonLink: promo.buttonLink
+      })),
       servicesCategories: services,
       experts,
       branches: finalBranches,

@@ -336,6 +336,134 @@ export async function getWebsiteServicesPageDataHandler(req: Request, res: Respo
   });
 }
 
+export async function getWebsiteSingleServicePageDataHandler(req: Request, res: Response) {
+  const functionName = getWebsiteSingleServicePageDataHandler.name;
+  const { serviceId } = req.params;
+
+  const businessInfo = await BusinessInfoModel.findOne();
+  if (!businessInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Business info not found",
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const websiteInfo = businessInfo.websiteInfo;
+  if (!websiteInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Website info not found",
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const services = websiteInfo.services;
+  if (!services) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Website services data not found",
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const serviceData = services.find((s) => s.serviceId === serviceId);
+  if (!serviceData) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        `No service found with the ID: ${serviceId}`,
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const serviceItems = await findServicesByCategoryId(serviceId);
+  const serviceItemsFormatted = serviceItems.map((service) => ({
+    id: service._id.toString(),
+    name: service.name,
+    description: service.description,
+    price: service.price,
+    duration: service.duration,
+    image: service.thumbnail
+  }));
+
+  const employees = await findAllEmployeesPaginated(1, 4);
+  const experts = employees.map((employee) => ({
+    id: employee._id.toString(),
+    name: employee.name,
+    designation: employee.jobRole,
+    profileImage: employee.profileImage,
+    specialization:
+      employee.specialization?.length === 0 ? ["Modern Patterns", "Special Events"] : employee.specialization,
+    rating: employee.rating || 5
+  }));
+
+  const branches = await findAllBranches();
+  const finalBranches = branches.map((branch) => {
+    const openingHourStr = formatWeeklySchedule(branch.weeklySchedule);
+    return {
+      id: branch._id.toString(),
+      name: branch.name,
+      address: branch.address,
+      phone: branch.phone,
+      email: branch.email,
+      rating: branch.rating,
+      openingHours: openingHourStr,
+      latitude: branch.latitude,
+      longitude: branch.longitude
+    };
+  });
+
+  // const reviews = await ReviewModel.find({ showInWebsite: true }).sort({ rating: -1 }).limit(5);
+  // const testimonials = reviews.map((review) => ({
+  //   id: review._id.toString(),
+  //   customerName: review.customerName,
+  //   customerImage: review.customerImage,
+  //   rating: review.rating,
+  //   comment: review.comment
+  // }));
+
+  return SendResponse.success({
+    res,
+    message: "Website single service page public data fetched successfully",
+    data: {
+      service: {
+        id: serviceData.serviceId,
+        name: serviceData.serviceName,
+        heroSection: serviceData.heroSection,
+        bodySections: serviceData.bodySections,
+        serviceItemsWeProvide: serviceItemsFormatted,
+        experts: experts,
+        branches: finalBranches
+        // testimonials: testimonials
+      }
+    }
+  });
+}
+
 export async function getWebsitePricingPageDataHandler(req: Request, res: Response) {
   // const functionName = getWebsitePricingPageDataHandler.name;
 

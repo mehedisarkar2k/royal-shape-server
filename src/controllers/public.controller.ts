@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
 import { SendErrorResponse, SendResponse } from "../utils";
-import { BusinessInfoModel, PromotionModel, WeeklySchedule } from "../model";
-import { ApplicationServices, DATA_NOT_FOUND, INPUT_MISSING, UNEXPECTED_ERROR } from "../constants";
+import { BlogModel, BusinessInfoModel, PromotionModel, WeeklySchedule } from "../model";
+import { ApplicationServices, BlogStatus, DATA_NOT_FOUND, INPUT_MISSING, UNEXPECTED_ERROR } from "../constants";
 import {
   findAllBranches,
   findAllCareerPosts,
@@ -1053,6 +1053,148 @@ export async function getWebsiteBranchServicesPublicDataHandler(req: Request, re
           ]
         }
       ]
+    }
+  });
+}
+
+export async function getBlogCategoriesAndTagsHandler(req: Request, res: Response) {
+  // const functionName = getBlogCategoriesAndTagsHandler.name;
+
+  const blogPosts = await BlogModel.find({ status: BlogStatus.PUBLISHED });
+  const categorySet = new Set<string>();
+  const tagSet = new Set<string>();
+
+  blogPosts.forEach((post) => {
+    categorySet.add(post.category);
+    (post.tags || []).forEach((tag) => tagSet.add(tag));
+  });
+
+  const categories = Array.from(categorySet);
+  const tags = Array.from(tagSet);
+
+  return SendResponse.success({
+    res,
+    message: "Blog categories and tags fetched successfully",
+    data: {
+      blog: { categories, tags }
+    }
+  });
+}
+
+export async function getAllPublishedBlogsHandler(req: Request, res: Response) {
+  // const functionName = getAllPublishedBlogsHandler.name;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+
+  const blogs = await BlogModel.find({ status: BlogStatus.PUBLISHED })
+    .sort({ publishedAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit);
+
+  const totalBlogs = await BlogModel.countDocuments({ status: BlogStatus.PUBLISHED });
+  const totalPages = Math.ceil(totalBlogs / limit);
+
+  const hasNext = page < totalPages;
+
+  const formattedBlogs = blogs.map((blog) => {
+    // calculate estimated reading time based on character count
+    const wordsPerMinute = 200;
+    const text = blog.content || "";
+    const textLength = text.split(" ").length;
+    const estimatedReadingTime = Math.ceil(textLength / wordsPerMinute);
+
+    return {
+      id: blog._id.toString(),
+      title: blog.title,
+      category: blog.category,
+      publishedAt: blog.publishedAt,
+      author: blog.author,
+      tags: blog.tags,
+      excerpt: blog.briefDescription,
+      coverImage: blog.featuredImage,
+      estimatedReadingTime
+    };
+  });
+
+  return SendResponse.success({
+    res,
+    message: "Published blogs fetched successfully",
+    data: {
+      items: formattedBlogs,
+      totalItems: totalBlogs,
+      totalPages,
+      currentPage: page,
+      limit,
+      hasNext
+    }
+  });
+}
+
+export async function getSinglePublishedBlogHandler(req: Request, res: Response) {
+  const functionName = getSinglePublishedBlogHandler.name;
+  const { blogId } = req.params;
+
+  const blog = await BlogModel.findById(blogId);
+  if (!blog || blog.status !== BlogStatus.PUBLISHED) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        `No published blog post found with the ID: ${blogId}`,
+        DATA_NOT_FOUND,
+        "The requested blog post does not exist or is not published."
+      )
+    });
+  }
+
+  const wordsPerMinute = 200;
+  const text = blog.content || "";
+  const textLength = text.split(" ").length;
+  const estimatedReadingTime = Math.ceil(textLength / wordsPerMinute);
+
+  const relatedBlogs = await BlogModel.find({
+    _id: { $ne: blog._id },
+    category: blog.category,
+    status: BlogStatus.PUBLISHED
+  })
+    .sort({ publishedAt: -1 })
+    .limit(4);
+
+  return SendResponse.success({
+    res,
+    message: "Published blog fetched successfully",
+    data: {
+      blog: {
+        id: blog._id.toString(),
+        title: blog.title,
+        category: blog.category,
+        publishedAt: blog.publishedAt,
+        author: blog.author,
+        tags: blog.tags,
+        excerpt: blog.briefDescription,
+        coverImage: blog.featuredImage,
+        estimatedReadingTime,
+        content: blog.content
+      },
+      relatedBlogs: relatedBlogs.map((relatedBlog) => {
+        const wordsPerMinute = 200;
+        const text = relatedBlog.content || "";
+        const textLength = text.split(" ").length;
+        const readingTime = Math.ceil(textLength / wordsPerMinute);
+        return {
+          id: relatedBlog._id.toString(),
+          title: relatedBlog.title,
+          category: relatedBlog.category,
+          publishedAt: relatedBlog.publishedAt,
+          author: relatedBlog.author,
+          tags: relatedBlog.tags,
+          excerpt: relatedBlog.briefDescription,
+          coverImage: relatedBlog.featuredImage,
+          estimatedReadingTime: readingTime
+        };
+      })
     }
   });
 }

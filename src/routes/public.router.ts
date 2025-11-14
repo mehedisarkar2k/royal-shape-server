@@ -4,7 +4,10 @@ import { Router } from "express";
 import {
   applyToCareerPostHandler,
   contactFormSubmitHandler,
+  getAllPublishedBlogsHandler,
+  getBlogCategoriesAndTagsHandler,
   getSingleCareerPostPublicDataHandler,
+  getSinglePublishedBlogHandler,
   getWebsiteAboutPageDataHandler,
   getWebsiteBranchesPublicDataHandler,
   getWebsiteBranchServicesPublicDataHandler,
@@ -46,5 +49,8 @@ router.post(
 );
 router.get("/website/branches-info", asyncWrapper(getWebsiteBranchesPublicDataHandler));
 router.get("/website/branch/services-info/:branchId", asyncWrapper(getWebsiteBranchServicesPublicDataHandler));
+router.get("/website/blog/categories-and-tags", asyncWrapper(getBlogCategoriesAndTagsHandler));
+router.get("/website/blog/all", asyncWrapper(getAllPublishedBlogsHandler));
+router.get("/website/blog/single/:blogId", asyncWrapper(getSinglePublishedBlogHandler));
 
 export default router;

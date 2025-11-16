@@ -6,6 +6,7 @@ import { ApplicationServices, BlogStatus, DATA_NOT_FOUND, INPUT_MISSING, UNEXPEC
 import {
   findAllBranches,
   findAllCareerPosts,
+  findAllCombosOfBranch,
   findAllEmployeesPaginated,
   findAllServiceCategories,
   findAllServiceCategoriesOfBranch,
@@ -1111,6 +1112,16 @@ export async function getWebsiteBranchServicesPublicDataHandler(req: Request, re
     })
   );
 
+  const comboServices = await findAllCombosOfBranch(branch._id.toString());
+  const finalComboServices = comboServices.map((combo) => ({
+    id: combo._id.toString(),
+    name: combo.name,
+    description: combo.description,
+    price: combo.price,
+    currency: combo.currency,
+    features: combo.comboItems
+  }));
+
   return SendResponse.success({
     res,
     message: "Website pricing page data fetched successfully",
@@ -1118,41 +1129,7 @@ export async function getWebsiteBranchServicesPublicDataHandler(req: Request, re
       individualServices: {
         serviceCategories: finalServicesCategories
       },
-      serviceCombos: [
-        // TODO: fetch from DB later
-        {
-          name: "Basic Package",
-          description: "Perfect for beginners who want to try our services",
-          price: 120,
-          currency: "AUD",
-          features: ["Eyebrow Threading & Tinting", "Express Facial", "Classic Manicure"]
-        },
-        {
-          name: "Premium Package",
-          description: "Our most popular package for complete beauty experience",
-          price: 220,
-          currency: "AUD",
-          features: [
-            "Full Face Threading & Tinting",
-            "Deluxe Facial Treatment",
-            "Eyelash Extensions",
-            "Henna Design (Small)"
-          ]
-        },
-        {
-          name: "Luxury Package",
-          description: "Ultimate beauty transformation for special occasions",
-          price: 350,
-          currency: "AUD",
-          features: [
-            "Complete Threading & Tinting",
-            "Premium Facial & Massage",
-            "Professional Makeup",
-            "Eyelash Extensions & Lifting",
-            "Elaborate Henna Design"
-          ]
-        }
-      ]
+      serviceCombos: finalComboServices || []
     }
   });
 }

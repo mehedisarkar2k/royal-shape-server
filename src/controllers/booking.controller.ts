@@ -34,6 +34,7 @@ import {
   UNEXPECTED_ERROR
 } from "../constants";
 import { createCustomer, findCustomerByEmail, findCustomerById } from "../services/customer.service";
+import { findComboById } from "../services";
 
 const buildErrorPayload = (
   endpoint: string,
@@ -80,11 +81,6 @@ export async function getAvailableSlotsHandler(req: Request, res: Response) {
       });
     }
 
-    // Parse serviceIds from query parameter
-    const serviceIdArray = Array.isArray(serviceIds)
-      ? (serviceIds as string[])
-      : (serviceIds as string).replace(/\s+/g, "").split(",");
-
     // Parse date
     const bookingDate = new Date(date as string);
     if (isNaN(bookingDate.getTime())) {
@@ -117,6 +113,34 @@ export async function getAvailableSlotsHandler(req: Request, res: Response) {
 
     // Find existing bookings for that day and branch
     const existingBookings = await findBookingsByBranchAndDate(branchId as string, bookingDate);
+
+    if (comboId) {
+      const comboService = await findComboById(comboId as string);
+      if (!comboService) {
+        return SendErrorResponse.notFound({
+          res,
+          message: "Combo not found"
+        });
+      }
+
+      // Calculate available slots
+      const availableSlots = calculateAvailableSlots(workingHours, existingBookings, [
+        { duration: comboService.duration }
+      ]);
+
+      return SendResponse.success({
+        res,
+        message: "Available slots fetched successfully",
+        data: {
+          availableSlots
+        }
+      });
+    }
+
+    // Parse serviceIds from query parameter
+    const serviceIdArray = Array.isArray(serviceIds)
+      ? (serviceIds as string[])
+      : (serviceIds as string).replace(/\s+/g, "").split(",");
 
     // Find the services to get duration information
     const services = await findServicesByIds(serviceIdArray);
@@ -207,6 +231,88 @@ export async function requestBookingHandler(
   const serviceIdArray = services || [];
   const comboId = combo || null;
 
+  if (comboId) {
+    const comboService = await findComboById(comboId);
+    if (!comboService) {
+      return SendErrorResponse.notFound({
+        res,
+        message: "Combo not found",
+        data: { clientError: { ...DATA_NOT_FOUND, message: "No combo found" } }
+      });
+    }
+
+    const branch = await findBranchById(branchId);
+    if (!branch) {
+      return SendErrorResponse.notFound({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Branch not found",
+          DATA_NOT_FOUND,
+          "Branch not found"
+        )
+      });
+    }
+
+    // * create the customer in DB if not exists
+    let customer = await findCustomerByEmail(customerInfo.email.toLowerCase());
+    if (!customer) {
+      customer = await createCustomer({
+        email: customerInfo.email.toLowerCase(),
+        firstName: customerInfo.firstName.trim(),
+        lastName: (customerInfo.lastName || "").trim(),
+        phone: {
+          countryCode: customerInfo.phone.countryCode.trim(),
+          number: customerInfo.phone.number.trim(),
+          e164: `+${customerInfo.phone.countryCode.trim()}${customerInfo.phone.number.trim()}`
+        },
+        description: (customerInfo.specialNotes || "").trim()
+      });
+    }
+
+    const bookingDate = parseDateTimeFromDateAndTimeStr(date, startTime);
+    if (!bookingDate) {
+      return SendErrorResponse.badRequest({
+        res,
+        message: "Invalid date or time format. Parsing from date and time strings failed.",
+        data: {
+          clientError: {
+            ...BAD_REQUEST,
+            message: "Invalid date or time format. If you believe this is an error, please contact support."
+          }
+        }
+      });
+    }
+
+    const newBooking = await createBooking({
+      shortId: await generateUniqueShortBookingId(),
+      branchId,
+      branchName: branch.name,
+      serviceIds: null,
+      serviceType: BookingServiceType.COMBO,
+      comboId: comboService._id.toString(),
+      customerId: customer._id.toString(),
+      bookingDate,
+      startTime,
+      endTime,
+      totalPrice: comboService.price,
+      discount: null,
+      notes: customerInfo.specialNotes || null,
+      status: BookingStatus.PENDING
+    });
+
+    return SendResponse.success({
+      res,
+      message: "Booking requested successfully",
+      data: {
+        bookingId: newBooking._id.toString()
+      }
+    });
+  }
+
+  // * If services provided
   const servicesForBooking = await findServicesByIds(serviceIdArray);
   if (servicesForBooking.length === 0) {
     return SendErrorResponse.notFound({
@@ -238,8 +344,6 @@ export async function requestBookingHandler(
     });
   }
 
-  // find combos if comboIds are provided
-
   // * create the customer in DB if not exists
   let customer = await findCustomerByEmail(customerInfo.email.toLowerCase());
   if (!customer) {
@@ -257,12 +361,7 @@ export async function requestBookingHandler(
   }
 
   let totalPrice = 0;
-  if (servicesForBooking.length > 0) {
-    totalPrice = servicesForBooking.reduce((sum, service) => sum + service.price, 0);
-  } else {
-    // If combo booking, find the combo and get its price
-    totalPrice = 100; // Replace with actual combo price
-  }
+  totalPrice = servicesForBooking.reduce((sum, service) => sum + service.price, 0);
 
   const bookingDate = parseDateTimeFromDateAndTimeStr(date, startTime);
   // console.log(bookingDate);
@@ -284,10 +383,10 @@ export async function requestBookingHandler(
     branchId,
     branchName: branch.name,
     serviceIds: serviceIdArray,
-    serviceType: serviceIdArray.length > 0 ? BookingServiceType.SPECIFIC_SERVICE : BookingServiceType.COMBO,
-    comboId,
+    serviceType: BookingServiceType.SPECIFIC_SERVICE,
+    comboId: null,
     customerId: customer._id.toString(),
-    bookingDate, // maybe changed
+    bookingDate,
     startTime,
     endTime,
     totalPrice,
@@ -642,9 +741,8 @@ export async function getAllBookingsHandler(req: Request, res: Response) {
   const finalBookings = await Promise.all(
     bookings.map(async (booking) => {
       const customerInfo = await findCustomerById(booking.customerId);
-      const serviceInfo = await findServicesByIds(booking.serviceIds || []);
       const branchInfo = await findBranchById(booking.branchId);
-      if (!customerInfo || !branchInfo || serviceInfo.length === 0) {
+      if (!customerInfo || !branchInfo) {
         return SendErrorResponse.internalServer({
           res,
           ...buildErrorPayload(
@@ -657,9 +755,51 @@ export async function getAllBookingsHandler(req: Request, res: Response) {
           )
         });
       }
+      if (booking.serviceType === BookingServiceType.COMBO && booking.comboId) {
+        const combo = await findComboById(booking.comboId!);
+        if (!combo) {
+          return SendErrorResponse.internalServer({
+            res,
+            ...buildErrorPayload(
+              req.originalUrl,
+              functionName,
+              req.method,
+              "Failed to retrieve combo details",
+              UNEXPECTED_ERROR,
+              "Failed to retrieve combo details"
+            )
+          });
+        }
+        return {
+          id: booking._id.toString(),
+          shortId: booking.shortId,
+          bookingType: booking.serviceType,
+          branch: {
+            id: branchInfo?._id.toString(),
+            name: branchInfo.name
+          },
+          customer: {
+            id: customerInfo._id.toString(),
+            name: `${customerInfo.firstName} ${customerInfo.lastName}`.trim()
+          },
+          services: [
+            {
+              id: combo._id.toString(),
+              name: combo.name
+            }
+          ],
+          price: booking.totalPrice,
+          date: booking.bookingDate.toISOString().split("T")[0],
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          status: booking.status
+        };
+      }
+      const serviceInfo = await findServicesByIds(booking.serviceIds || []);
       return {
         id: booking._id.toString(),
         shortId: booking.shortId,
+        bookingType: booking.serviceType,
         branch: {
           id: branchInfo?._id.toString(),
           name: branchInfo.name
@@ -775,10 +915,9 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
   }
 
   const customerInfo = await findCustomerById(booking.customerId);
-  const serviceInfo = await findServicesByIds(booking.serviceIds || []);
   const branchInfo = await findBranchById(booking.branchId);
 
-  if (!customerInfo || !branchInfo || serviceInfo.length === 0) {
+  if (!customerInfo || !branchInfo) {
     return SendErrorResponse.internalServer({
       res,
       ...buildErrorPayload(
@@ -792,6 +931,77 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
     });
   }
 
+  if (booking.serviceType === BookingServiceType.COMBO && booking.comboId) {
+    const combo = await findComboById(booking.comboId);
+    if (!combo) {
+      return SendErrorResponse.internalServer({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Failed to retrieve combo details",
+          UNEXPECTED_ERROR,
+          "Failed to retrieve combo details"
+        )
+      });
+    }
+
+    const formattedBooking = {
+      id: booking._id.toString(),
+      bookingType: booking.serviceType,
+      shortId: booking.shortId,
+      branch: {
+        id: branchInfo._id.toString(),
+        name: branchInfo.name
+      },
+      customer: {
+        id: customerInfo._id.toString(),
+        name: `${customerInfo.firstName} ${customerInfo.lastName}`.trim(),
+        email: customerInfo.email,
+        phone: customerInfo.phone,
+        description: customerInfo.description || ""
+      },
+      category: {
+        id: "COMBO",
+        name: "Combo Service"
+      },
+      services: [
+        {
+          id: combo._id.toString(),
+          name: combo.name
+        }
+      ],
+      price: booking.totalPrice,
+      date: booking.bookingDate.toISOString().split("T")[0],
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      status: booking.status
+    };
+
+    return SendResponse.success({
+      res,
+      message: "Booking retrieved successfully",
+      data: {
+        booking: formattedBooking
+      }
+    });
+  }
+
+  const serviceInfo = await findServicesByIds(booking.serviceIds || []);
+  if (serviceInfo.length === 0) {
+    return SendErrorResponse.internalServer({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Failed to retrieve booking details",
+        UNEXPECTED_ERROR,
+        "Failed to retrieve booking details"
+      )
+    });
+  }
   const serviceCategory = await findServiceCategoryById(serviceInfo[0].categoryId);
   if (!serviceCategory) {
     return SendErrorResponse.internalServer({
@@ -810,6 +1020,7 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
   const formattedBooking = {
     id: booking._id.toString(),
     shortId: booking.shortId,
+    bookingType: booking.serviceType,
     branch: {
       id: branchInfo._id.toString(),
       name: branchInfo.name
@@ -864,6 +1075,69 @@ export async function getPublicSingleBookingHandler(req: Request, res: Response)
     });
   }
 
+  if (booking.serviceType === BookingServiceType.COMBO && booking.comboId) {
+    const customerInfo = await findCustomerById(booking.customerId);
+    const branchInfo = await findBranchById(booking.branchId);
+
+    if (!customerInfo || !branchInfo) {
+      return SendErrorResponse.internalServer({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Failed to retrieve booking details",
+          UNEXPECTED_ERROR,
+          "Failed to retrieve booking details"
+        )
+      });
+    }
+
+    const combo = await findComboById(booking.comboId);
+    if (!combo) {
+      return SendErrorResponse.internalServer({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Combo not found while retrieving booking details",
+          DATA_NOT_FOUND,
+          "Combo not found while retrieving booking details"
+        )
+      });
+    }
+
+    const formattedBooking = {
+      id: booking._id.toString(),
+      shortId: booking.shortId,
+      branch: {
+        id: branchInfo._id.toString(),
+        name: branchInfo.name
+      },
+      services: [
+        {
+          id: booking.comboId,
+          name: combo.name
+        }
+      ],
+      price: booking.totalPrice,
+      date: booking.bookingDate.toISOString().split("T")[0],
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      status: booking.status
+    };
+
+    return SendResponse.success({
+      res,
+      message: "Booking retrieved successfully",
+      data: {
+        booking: formattedBooking
+      }
+    });
+  }
+
+  // * If not combo booking, specific service booking
   const customerInfo = await findCustomerById(booking.customerId);
   const serviceInfo = await findServicesByIds(booking.serviceIds || []);
   const branchInfo = await findBranchById(booking.branchId);

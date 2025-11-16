@@ -21,3 +21,7 @@ export async function findAllCombosPaginated(page: number, limit: number) {
 export async function countCombos() {
   return ComboModel.countDocuments({});
 }
+
+export async function findAllCombosOfBranch(branchId: string) {
+  return ComboModel.find({ "branches.branchId": branchId });
+}

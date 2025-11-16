@@ -184,6 +184,55 @@ export async function getWebsiteHomePublicDataHandler(req: Request, res: Respons
 
   const promotions = await PromotionModel.find({ isActive: true }).sort({ createdAt: -1 });
 
+  // TODO: fetch from DB later
+  const awards = [
+    {
+      id: "1",
+      title: "Best Salon Design",
+      issuer: "Beauty Excellence Awards",
+      year: "2024",
+      description: "Recognized for innovative salon design and customer experience excellence",
+      badgeImage: "/awards/badge-gold-design.png",
+      category: "Design"
+    },
+    {
+      id: "2",
+      title: "Excellence in Beauty Services",
+      issuer: "International Beauty Forum",
+      year: "2024",
+      description: "Outstanding achievement in beauty treatments and professional services",
+      badgeImage: "/awards/badge-silver-services.png",
+      category: "Services"
+    },
+    {
+      id: "3",
+      title: "Premium Brand Recognition",
+      issuer: "Global Beauty Excellence",
+      year: "2023",
+      description: "Leading contributor in luxury beauty and wellness experiences",
+      badgeImage: "/awards/badge-platinum-brand.png",
+      category: "Brand"
+    },
+    {
+      id: "4",
+      title: "Creative Innovation Award",
+      issuer: "Beauty Summit Global",
+      year: "2023",
+      description: "Innovation in beauty treatments and creative styling solutions",
+      badgeImage: "/awards/badge-bronze-innovation.png",
+      category: "Innovation"
+    },
+    {
+      id: "5",
+      title: "Customer Choice Award",
+      issuer: "Beauty Leaders Conference",
+      year: "2024",
+      description: "Excellence in customer satisfaction and service quality",
+      badgeImage: "/awards/badge-customer-choice.png",
+      category: "Excellence"
+    }
+  ];
+
   return SendResponse.success({
     res,
     message: "Website home public data fetched successfully",
@@ -211,6 +260,7 @@ export async function getWebsiteHomePublicDataHandler(req: Request, res: Respons
         buttonLink: promo.buttonLink
       })),
       servicesCategories: services,
+      awards,
       experts,
       branches: finalBranches,
       showcase,
@@ -610,6 +660,55 @@ export async function getWebsiteAboutPageDataHandler(req: Request, res: Response
     };
   });
 
+  // TODO: fetch from DB later
+  const awards = [
+    {
+      id: "1",
+      title: "Best Salon Design",
+      issuer: "Beauty Excellence Awards",
+      year: "2024",
+      description: "Recognized for innovative salon design and customer experience excellence",
+      badgeImage: "/awards/badge-gold-design.png",
+      category: "Design"
+    },
+    {
+      id: "2",
+      title: "Excellence in Beauty Services",
+      issuer: "International Beauty Forum",
+      year: "2024",
+      description: "Outstanding achievement in beauty treatments and professional services",
+      badgeImage: "/awards/badge-silver-services.png",
+      category: "Services"
+    },
+    {
+      id: "3",
+      title: "Premium Brand Recognition",
+      issuer: "Global Beauty Excellence",
+      year: "2023",
+      description: "Leading contributor in luxury beauty and wellness experiences",
+      badgeImage: "/awards/badge-platinum-brand.png",
+      category: "Brand"
+    },
+    {
+      id: "4",
+      title: "Creative Innovation Award",
+      issuer: "Beauty Summit Global",
+      year: "2023",
+      description: "Innovation in beauty treatments and creative styling solutions",
+      badgeImage: "/awards/badge-bronze-innovation.png",
+      category: "Innovation"
+    },
+    {
+      id: "5",
+      title: "Customer Choice Award",
+      issuer: "Beauty Leaders Conference",
+      year: "2024",
+      description: "Excellence in customer satisfaction and service quality",
+      badgeImage: "/awards/badge-customer-choice.png",
+      category: "Excellence"
+    }
+  ];
+
   return SendResponse.success({
     res,
     message: "Website about page public data fetched successfully",
@@ -654,7 +753,8 @@ export async function getWebsiteAboutPageDataHandler(req: Request, res: Response
         tiktok: businessInfo.socialInfo.tiktok || ""
       },
       branches: finalBranches,
-      experts
+      experts,
+      awards
     }
   });
 }

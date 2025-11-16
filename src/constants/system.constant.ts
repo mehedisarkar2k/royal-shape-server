@@ -33,6 +33,7 @@ export enum ApplicationServices {
   CUSTOMER = "Customer",
   EMPLOYEE = "Employee",
   SERVICE = "Service",
+  COMBO = "Combo",
   CAREER = "Career",
   BLOG = "Blog",
   BOOKING = "Booking",

@@ -11,7 +11,8 @@ import {
   getCustomerBookingHistory,
   findServicesByIds,
   findComboById,
-  findUserById
+  findUserById,
+  countCustomerBookings
 } from "../services";
 import { SendErrorResponse, SendResponse } from "../utils";
 import {
@@ -288,7 +289,7 @@ export async function getCustomerBookingHistoryHandler(req: Request, res: Respon
     });
   }
 
-  const customer = await findCustomerById(user._id);
+  const customer = await findCustomerByEmail(user.email);
   if (!customer) {
     return SendErrorResponse.notFound({
       res,
@@ -304,16 +305,20 @@ export async function getCustomerBookingHistoryHandler(req: Request, res: Respon
   }
 
   const bookings = await getCustomerBookingHistory(customer._id.toString(), page, limit);
+  const totalBookings = await countCustomerBookings(customer._id.toString());
+  const totalPages = Math.ceil(totalBookings / limit);
+  const hasNext = page * limit < totalBookings;
+
   const finalBookings = await Promise.all(
     bookings.map(async (booking) => {
       let serviceNames = "";
       if (booking.serviceIds && booking.serviceIds.length > 0 && !booking.comboId) {
         const services = await findServicesByIds(booking.serviceIds);
         serviceNames = services.map((service) => service.name).join(", ");
+      } else {
+        const combo = await findComboById(booking.comboId as string);
+        serviceNames = combo?.name || "Combo Service";
       }
-      const combo = await findComboById(booking.comboId as string);
-      serviceNames = combo?.name || "Combo Service";
-
       return {
         id: booking._id.toString(),
         shortId: booking.shortId,
@@ -332,7 +337,12 @@ export async function getCustomerBookingHistoryHandler(req: Request, res: Respon
     res,
     message: "Fetched booking history successfully",
     data: {
-      bookings: finalBookings
+      items: finalBookings,
+      currentPage: page,
+      limit,
+      totalItems: totalBookings,
+      totalPages,
+      hasNext
     }
   });
 }

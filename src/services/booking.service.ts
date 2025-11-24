@@ -91,3 +91,7 @@ export async function getCustomerBookingHistory(customerId: string, page: number
 
   return bookings;
 }
+
+export async function countCustomerBookings(customerId: string) {
+  return BookingModel.countDocuments({ customerId });
+}

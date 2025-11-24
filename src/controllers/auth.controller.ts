@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import admin from "firebase-admin";
 import { v4 as uuid } from "uuid";
 import { AdminLoginType, CustomerLoginType } from "../schemas";
-import { createUser, findUserByEmail, findUserByPhone } from "../services";
+import { createCustomer, createUser, findCustomerByEmail, findUserByEmail, findUserByPhone } from "../services";
 import { SendErrorResponse, SendResponse } from "../utils";
 import { ApplicationServices, BAD_REQUEST, DATA_NOT_FOUND, INPUT_MISSING, UNAUTHORIZED_ERROR } from "../constants";
 
@@ -201,12 +201,55 @@ export const customerLoginHandler = async (
       role: "customer"
     });
 
+    const alreadyExistingCustomer = await findCustomerByEmail(newUser.email as string);
+    if (alreadyExistingCustomer) {
+      return SendResponse.success({
+        res,
+        message: "User logged in successfully",
+        data: {
+          user: {
+            id: newUser._id.toString(),
+            customerId: alreadyExistingCustomer._id.toString(),
+            email: newUser.email,
+            phone: newUser.phone,
+            firstName: newUser.firstName,
+            userType: newUser.userType,
+            role: newUser.role
+          }
+        }
+      });
+    }
+
+    const customerProfile = await createCustomer({
+      userId: newUser._id.toString(),
+      firstName: newUser.firstName,
+      lastName: newUser.lastName || null,
+      email: newUser.email || null,
+      phone: newUser.phone || null,
+      description: null,
+      profileImage: null
+    });
+    if (!customerProfile) {
+      return SendErrorResponse.internalServer({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Failed to create customer profile",
+          BAD_REQUEST,
+          "An error occurred while creating the customer profile"
+        )
+      });
+    }
+
     return SendResponse.success({
       res,
       message: "User logged in successfully",
       data: {
         user: {
           id: newUser._id.toString(),
+          customerId: customerProfile._id.toString(),
           email: newUser.email,
           phone: newUser.phone,
           firstName: newUser.firstName,
@@ -217,12 +260,56 @@ export const customerLoginHandler = async (
     });
   }
 
+  // User exists, proceed to login
+  const alreadyExistingCustomer = await findCustomerByEmail(user.email as string);
+  if (alreadyExistingCustomer) {
+    return SendResponse.success({
+      res,
+      message: "User logged in successfully",
+      data: {
+        user: {
+          id: user._id.toString(),
+          customerId: alreadyExistingCustomer._id.toString(),
+          email: user.email,
+          phone: user.phone,
+          firstName: user.firstName,
+          userType: user.userType,
+          role: user.role
+        }
+      }
+    });
+  }
+
+  const customerProfile = await createCustomer({
+    userId: user._id.toString(),
+    firstName: user.firstName,
+    lastName: user.lastName || null,
+    email: user.email || null,
+    phone: user.phone || null,
+    description: null,
+    profileImage: user.profilePicture || null
+  });
+  if (!customerProfile) {
+    return SendErrorResponse.internalServer({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Failed to create customer profile",
+        BAD_REQUEST,
+        "An error occurred while creating the customer profile"
+      )
+    });
+  }
+
   return SendResponse.success({
     res,
     message: "User logged in successfully",
     data: {
       user: {
         id: user._id.toString(),
+        customerId: customerProfile._id.toString(),
         email: user.email,
         phone: user.phone,
         firstName: user.firstName,

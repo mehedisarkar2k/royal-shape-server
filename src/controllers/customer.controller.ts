@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
-import { UpdateCustomerType } from "../schemas";
+import { UpdateAuthenticatedCustomerType, UpdateCustomerType } from "../schemas";
 import {
   createCustomer,
   findCustomerByEmail,
@@ -10,10 +10,19 @@ import {
   deleteCustomerById,
   getCustomerBookingHistory,
   findServicesByIds,
-  findComboById
+  findComboById,
+  findUserById
 } from "../services";
 import { SendErrorResponse, SendResponse } from "../utils";
-import { ApplicationServices, CONFLICT_ERROR, DATA_NOT_FOUND, UserType } from "../constants";
+import {
+  ApplicationServices,
+  CONFLICT_ERROR,
+  DATA_NOT_FOUND,
+  INPUT_MISSING,
+  UNEXPECTED_ERROR,
+  UserType
+} from "../constants";
+import { uploadFileR2WithAutoKey } from "../services/r2-storage.service";
 
 const buildErrorPayload = (
   endpoint: string,
@@ -324,6 +333,197 @@ export async function getCustomerBookingHistoryHandler(req: Request, res: Respon
     message: "Fetched booking history successfully",
     data: {
       bookings: finalBookings
+    }
+  });
+}
+
+export async function getAuthenticatedSingleCustomerHandler(req: Request, res: Response) {
+  const functionName = getAuthenticatedSingleCustomerHandler.name;
+  const user = res.locals.user;
+
+  if (user.userType !== UserType.CUSTOMER) {
+    return SendErrorResponse.unauthorized({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "This endpoint is only accessible to customers",
+        DATA_NOT_FOUND,
+        "You are not authorized to access this customer portal"
+      )
+    });
+  }
+
+  const customer = await findCustomerByEmail(user.email);
+  if (!customer) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Customer not found",
+        DATA_NOT_FOUND,
+        "Customer information not found"
+      )
+    });
+  }
+
+  return SendResponse.success({
+    res,
+    message: "Fetched customer information successfully",
+    data: {
+      customer: {
+        userId: customer.userId,
+        id: customer._id.toString(),
+        firstName: customer.firstName,
+        lastName: customer.lastName ?? "",
+        profileImage: customer.profileImage ?? null,
+        email: customer.email,
+        description: customer.description ?? null,
+        phone: customer.phone ?? null
+      }
+    }
+  });
+}
+
+export async function updateAuthenticatedCustomerHandler(
+  req: Request<Record<string, never>, Record<string, never>, UpdateAuthenticatedCustomerType>,
+  res: Response
+) {
+  const functionName = updateAuthenticatedCustomerHandler.name;
+  const currentUser = res.locals.user;
+  const data = req.body;
+
+  if (currentUser.userType !== UserType.CUSTOMER) {
+    return SendErrorResponse.unauthorized({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "This endpoint is only accessible to customers",
+        DATA_NOT_FOUND,
+        "You are not authorized to access this customer portal"
+      )
+    });
+  }
+
+  const user = await findUserById(currentUser._id);
+  if (!user) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "User not found",
+        DATA_NOT_FOUND,
+        "User information not found"
+      )
+    });
+  }
+
+  const customer = await findCustomerByEmail(currentUser.email);
+  if (!customer) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Customer not found",
+        DATA_NOT_FOUND,
+        "Customer information not found"
+      )
+    });
+  }
+
+  if (data.firstName) {
+    customer.firstName = data.firstName.trim();
+    user.firstName = data.firstName.trim();
+  }
+  if (data.lastName !== undefined) {
+    customer.lastName = data.lastName ? data.lastName.trim() : null;
+    user.lastName = data.lastName ? data.lastName.trim() : null;
+  }
+  if (data.phone) {
+    customer.phone = {
+      countryCode: data.phone.countryCode.trim(),
+      number: data.phone.number.trim(),
+      e164: `+${data.phone.countryCode.trim()}${data.phone.number.trim()}`
+    };
+    user.phone = customer.phone;
+  }
+  if (data.profileImage !== undefined) {
+    customer.profileImage = data.profileImage ? data.profileImage.trim() : null;
+    user.profilePicture = customer.profileImage;
+  }
+  await customer.save();
+  await user.save();
+
+  return SendResponse.success({
+    res,
+    message: "Customer profile updated successfully",
+    data: null
+  });
+}
+
+export async function uploadAuthenticatedCustomerProfileImageHandler(req: Request, res: Response) {
+  const functionName = uploadAuthenticatedCustomerProfileImageHandler.name;
+  const { file } = req;
+  if (!file) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "No image file uploaded",
+        INPUT_MISSING,
+        "No image file uploaded"
+      )
+    });
+  }
+
+  const filepath = file.path;
+
+  const fileUploadRes = await uploadFileR2WithAutoKey(filepath, "customer-images", false);
+
+  if (!fileUploadRes.success) {
+    if (fileUploadRes.code === 404) {
+      return SendErrorResponse.notFound({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          fileUploadRes.message || "Image not found",
+          DATA_NOT_FOUND,
+          "Image not found"
+        )
+      });
+    }
+
+    return SendErrorResponse.internalServer({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        fileUploadRes.message || "Image upload failed",
+        UNEXPECTED_ERROR,
+        "Image upload failed"
+      )
+    });
+  }
+
+  return SendResponse.success({
+    res,
+    message: "Image uploaded successfully",
+    data: {
+      url: fileUploadRes.publicUrl
     }
   });
 }

@@ -4,13 +4,17 @@ import {
   createCustomerHandler,
   deleteCustomerHandler,
   getAllCustomersHandler,
+  getAuthenticatedSingleCustomerHandler,
   getCustomerBookingHistoryHandler,
   getSingleCustomerHandler,
-  updateCustomerHandler
+  updateAuthenticatedCustomerHandler,
+  updateCustomerHandler,
+  uploadAuthenticatedCustomerProfileImageHandler
 } from "../controllers";
 import { asyncWrapper } from "../utils";
-import { updateCustomerSchema } from "../schemas";
+import { updateAuthenticatedCustomerSchema, updateCustomerSchema } from "../schemas";
 import { createCustomerSchema } from "../schemas";
+import upload from "../utils/multer";
 
 const router = Router();
 
@@ -26,5 +30,18 @@ router.put(
 router.delete("/delete/:customerId", requireUser, asyncWrapper(deleteCustomerHandler));
 
 router.get("/booking-history", requireUser, asyncWrapper(getCustomerBookingHistoryHandler));
+router.get("/authenticated/single", requireUser, asyncWrapper(getAuthenticatedSingleCustomerHandler));
+router.put(
+  "/authenticated/update",
+  requireUser,
+  validateResource(updateAuthenticatedCustomerSchema),
+  asyncWrapper(updateAuthenticatedCustomerHandler)
+);
+router.post(
+  "/authenticated/upload-profile-image",
+  requireUser,
+  upload.single("profile-image"),
+  asyncWrapper(uploadAuthenticatedCustomerProfileImageHandler)
+);
 
 export default router;

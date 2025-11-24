@@ -21,7 +21,8 @@ const loadTemplate = (templateName: string, data: unknown): string => {
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 587, // secure:465
+  port: 465, // secure:465 - non-secure:587
+  secure: true,
   auth: {
     user: process.env.SMTP_EMAIL || (config.get("smtp.email") as string),
     pass: process.env.SMTP_PASSWORD || (config.get("smtp.password") as string)

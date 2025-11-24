@@ -3,6 +3,9 @@ import { Phone } from "./common.model";
 
 @ModelOptions({ schemaOptions: { collection: "customers", timestamps: true } })
 export class Customer {
+  @Prop({ required: false, type: String, default: null })
+  userId?: string | null;
+
   @Prop({ required: true, type: String })
   firstName: string;
 
@@ -17,6 +20,9 @@ export class Customer {
 
   @Prop({ required: false, type: String, default: null })
   description?: string | null;
+
+  @Prop({ required: false, type: String, default: null })
+  profileImage?: string | null;
 }
 
 export const CustomerModel = getModelForClass(Customer);

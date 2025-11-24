@@ -22,3 +22,13 @@ export const updateCustomerSchema = object({
   })
 });
 export type UpdateCustomerType = TypeOf<typeof updateCustomerSchema>["body"];
+
+export const updateAuthenticatedCustomerSchema = object({
+  body: object({
+    firstName: string().min(1, "First name is required").optional(),
+    lastName: string().optional().nullable(),
+    phone: phoneSchema.optional().nullable(),
+    profileImage: string().optional().nullable()
+  })
+});
+export type UpdateAuthenticatedCustomerType = TypeOf<typeof updateAuthenticatedCustomerSchema>["body"];

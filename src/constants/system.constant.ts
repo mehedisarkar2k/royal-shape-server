@@ -41,5 +41,6 @@ export enum ApplicationServices {
   ADMIN = "Admin",
   WEBSITE = "Website",
   ENGAGEMENT = "Engagement",
-  PROMOTION = "Promotion"
+  PROMOTION = "Promotion",
+  AWARD = "Award"
 }

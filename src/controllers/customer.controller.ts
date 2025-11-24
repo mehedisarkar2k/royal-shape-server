@@ -7,10 +7,13 @@ import {
   countAllCustomers,
   findCustomerById,
   findAllCustomersWithBookingDetailsPaginated,
-  deleteCustomerById
+  deleteCustomerById,
+  getCustomerBookingHistory,
+  findServicesByIds,
+  findComboById
 } from "../services";
 import { SendErrorResponse, SendResponse } from "../utils";
-import { ApplicationServices, CONFLICT_ERROR, DATA_NOT_FOUND } from "../constants";
+import { ApplicationServices, CONFLICT_ERROR, DATA_NOT_FOUND, UserType } from "../constants";
 
 const buildErrorPayload = (
   endpoint: string,
@@ -253,5 +256,74 @@ export async function deleteCustomerHandler(req: Request<{ customerId: string }>
     res,
     message: "Customer deleted successfully",
     data: null
+  });
+}
+
+export async function getCustomerBookingHistoryHandler(req: Request, res: Response) {
+  const functionName = getCustomerBookingHistoryHandler.name;
+  const user = res.locals.user;
+  const page = parseInt((req.query.page as string) || "1", 10);
+  const limit = parseInt((req.query.limit as string) || "20", 10);
+
+  if (user.userType !== UserType.CUSTOMER) {
+    return SendErrorResponse.unauthorized({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "This endpoint is only accessible to customers",
+        DATA_NOT_FOUND,
+        "You are not authorized to access this endpoint"
+      )
+    });
+  }
+
+  const customer = await findCustomerById(user._id);
+  if (!customer) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Customer not found",
+        DATA_NOT_FOUND,
+        "Customer not found"
+      )
+    });
+  }
+
+  const bookings = await getCustomerBookingHistory(customer._id.toString(), page, limit);
+  const finalBookings = await Promise.all(
+    bookings.map(async (booking) => {
+      let serviceNames = "";
+      if (booking.serviceIds && booking.serviceIds.length > 0 && !booking.comboId) {
+        const services = await findServicesByIds(booking.serviceIds);
+        serviceNames = services.map((service) => service.name).join(", ");
+      }
+      const combo = await findComboById(booking.comboId as string);
+      serviceNames = combo?.name || "Combo Service";
+
+      return {
+        id: booking._id.toString(),
+        shortId: booking.shortId,
+        branchId: booking.branchId,
+        branchName: booking.branchName,
+        service: serviceNames,
+        price: booking.totalPrice,
+        date: booking.bookingDate.toISOString().split("T")[0],
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        status: booking.status
+      };
+    })
+  );
+  return SendResponse.success({
+    res,
+    message: "Fetched booking history successfully",
+    data: {
+      bookings: finalBookings
+    }
   });
 }

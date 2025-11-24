@@ -15,3 +15,4 @@ export * from "./booking.model";
 export * from "./career.model";
 export * from "./promotion.model";
 export * from "./combo.model";
+export * from "./award.model";

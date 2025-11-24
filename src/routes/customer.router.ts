@@ -4,6 +4,7 @@ import {
   createCustomerHandler,
   deleteCustomerHandler,
   getAllCustomersHandler,
+  getCustomerBookingHistoryHandler,
   getSingleCustomerHandler,
   updateCustomerHandler
 } from "../controllers";
@@ -23,5 +24,7 @@ router.put(
   asyncWrapper(updateCustomerHandler)
 );
 router.delete("/delete/:customerId", requireUser, asyncWrapper(deleteCustomerHandler));
+
+router.get("/booking-history", requireUser, asyncWrapper(getCustomerBookingHistoryHandler));
 
 export default router;

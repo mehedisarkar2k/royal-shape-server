@@ -271,6 +271,14 @@ export async function requestBookingHandler(
         description: (customerInfo.specialNotes || "").trim()
       });
     }
+    if (!customer.phone) {
+      customer.phone = {
+        countryCode: customerInfo.phone.countryCode.trim(),
+        number: customerInfo.phone.number.trim(),
+        e164: `+${customerInfo.phone.countryCode.trim()}${customerInfo.phone.number.trim()}`
+      };
+      await customer.save();
+    }
 
     const bookingDate = parseDateTimeFromDateAndTimeStr(date, startTime);
     if (!bookingDate) {

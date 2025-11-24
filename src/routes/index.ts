@@ -14,6 +14,7 @@ import engagementRouter from "./engagement.router";
 import publicRouter from "./public.router";
 import promotionRouter from "./promotion.router";
 import blogRouter from "./blog.router";
+import comboRouter from "./combo.router";
 
 import { SendResponse } from "../utils";
 
@@ -39,5 +40,6 @@ router.use("/engagement", engagementRouter);
 router.use("/public", publicRouter);
 router.use("/promotion", promotionRouter);
 router.use("/blog", blogRouter);
+router.use("/combo", comboRouter);
 
 export default router;

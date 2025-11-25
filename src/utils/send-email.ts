@@ -1,5 +1,3 @@
-/* eslint-disable */
-
 import fs from "fs";
 import path from "path";
 import axios from "axios";
@@ -29,13 +27,15 @@ const SENDER_NAME = process.env.SENDER_NAME || (config.get("brevo.senderName") a
 
 // Verify Brevo configuration on startup
 if (!BREVO_API_KEY) {
-  console.error("⚠️  BREVO_API_KEY is not configured!");
+  logger.error("⚠️  BREVO_API_KEY is not configured!");
 } else {
-  console.log("✅ Brevo API Ready");
+  logger.info("✅ Brevo API Ready");
 }
 
 export const sendEmail = async (to: string, subject: string, html: string) => {
   try {
+    logger.info(`API Key: ${BREVO_API_KEY}`);
+
     const response = await axios.post(
       BREVO_API_URL,
       {

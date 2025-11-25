@@ -133,3 +133,24 @@ export const sendBookingConfirmationEmail = async (data: {
 
   await sendEmail(data.customerEmail, subject, html);
 };
+
+export const sendReviewRequestEmail = async (
+  to: string,
+  companyName: string,
+  companyEmail: string,
+  companyPhone: string,
+  reviewLink: string
+) => {
+  const subject = `We value your feedback! Please share your review.`;
+  const copyRightYear = format(new Date(), "yyyy");
+  const html = loadTemplate("review-request.template", {
+    copyRightYear,
+    companyName,
+    companyEmail,
+    companyPhone,
+    websiteLink: "https://royalthreadingandbeauty.com.au",
+    reviewLink
+  });
+
+  await sendEmail(to, subject, html);
+};

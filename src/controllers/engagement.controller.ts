@@ -1,11 +1,12 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
+import config from "config";
 import { ContactFormSubmitType, SubmitReviewInput } from "../schemas";
 import { ReviewModel } from "../model/review.model";
 import { ApplicationServices, UNEXPECTED_ERROR } from "../constants";
-import { sendContactUsEmail, SendErrorResponse, SendResponse } from "../utils";
-import { createContact } from "../services";
-import { ContactFormSubmissionModel } from "../model";
+import { logger, sendContactUsEmail, SendErrorResponse, SendResponse, sendReviewRequestEmail } from "../utils";
+import { createContact, findCustomerById } from "../services";
+import { BusinessInfoModel, ContactFormSubmissionModel } from "../model";
 
 const buildErrorPayload = (
   endpoint: string,
@@ -304,6 +305,81 @@ export async function deleteContactSubmissionHandler(req: Request, res: Response
   return SendResponse.success({
     res,
     message: "Contact form submission deleted successfully",
+    data: null
+  });
+}
+
+export async function askForReviewHandler(req: Request, res: Response) {
+  const functionName = askForReviewHandler.name;
+  const { email, customerId } = req.body;
+
+  const businessInfo = await BusinessInfoModel.findOne({});
+  const clientBaseUrl = config.get("server.clientBaseUrl") as string;
+
+  if (customerId) {
+    const customer = await findCustomerById(customerId);
+    if (!customer) {
+      return SendErrorResponse.notFound({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Customer not found",
+          UNEXPECTED_ERROR,
+          "The customer you are trying to request a review from does not exist."
+        )
+      });
+    }
+
+    if (!customer.email) {
+      return SendErrorResponse.badRequest({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Customer email not found",
+          UNEXPECTED_ERROR,
+          "The customer you are trying to request a review from does not have an email address."
+        )
+      });
+    }
+
+    try {
+      await sendReviewRequestEmail(
+        customer.email,
+        businessInfo?.name || "Royal Threading & Beauty",
+        businessInfo?.email || "royalthreadingandbeauty@gmail.com",
+        businessInfo?.phone.e164 || "+610452473681",
+        `${clientBaseUrl}/write-review`
+      );
+    } catch (error) {
+      logger.error("Error sending review request email: ", (error as Error).message);
+    }
+
+    return SendResponse.success({
+      res,
+      message: "Review request sent successfully",
+      data: null
+    });
+  }
+
+  try {
+    await sendReviewRequestEmail(
+      email,
+      businessInfo?.name || "Royal Threading & Beauty",
+      businessInfo?.email || "royalthreadingandbeauty@gmail.com",
+      businessInfo?.phone.e164 || "+610452473681",
+      `${clientBaseUrl}/write-review`
+    );
+  } catch (error) {
+    logger.error("Error sending review request email: ", (error as Error).message);
+  }
+
+  return SendResponse.success({
+    res,
+    message: "Review request sent successfully",
     data: null
   });
 }

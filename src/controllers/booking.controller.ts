@@ -9,7 +9,11 @@ import {
   isValidDate,
   isValidTimeFormat,
   parseDateTimeFromDateAndTimeStr,
-  isSlotAvailable
+  isSlotAvailable,
+  sendBookingRequestEmail,
+  logger,
+  sendBookingRequestSubmissionEmailToAdmin,
+  sendBookingConfirmationEmail
 } from "../utils";
 import { ConfirmBookingType, RequestBookingType, UpdateBookingType } from "../schemas";
 import { findBranchById } from "../services/branch.service";
@@ -35,6 +39,7 @@ import {
 } from "../constants";
 import { createCustomer, findCustomerByEmail, findCustomerById } from "../services/customer.service";
 import { findComboById } from "../services";
+import { BusinessInfoModel } from "../model";
 
 const buildErrorPayload = (
   endpoint: string,
@@ -311,6 +316,51 @@ export async function requestBookingHandler(
       status: BookingStatus.PENDING
     });
 
+    const businessInfo = await BusinessInfoModel.findOne({});
+    const companyName = businessInfo?.name || "Royal Threading & Beauty";
+    // Send booking request email to customer
+    if (customer.email) {
+      try {
+        const supportEmail = branch.email;
+        const supportPhone = branch.phone;
+        await sendBookingRequestEmail({
+          bookingId: newBooking.shortId,
+          service: comboService.name,
+          date: newBooking.bookingDate.toISOString().split("T")[0],
+          time: newBooking.startTime,
+          amount: `AUD ${newBooking.totalPrice}`,
+          customerName: `${customer.firstName} ${customer.lastName}`.trim(),
+          customerEmail: customer.email,
+          companyName,
+          supportEmail,
+          supportPhone: supportPhone.e164
+        });
+      } catch (error) {
+        logger.error(
+          `Failed to send booking request email for booking ID: ${newBooking._id.toString()}. Error: ${(error as Error).message}`
+        );
+      }
+    }
+
+    // Send booking request submission email to admin
+    try {
+      await sendBookingRequestSubmissionEmailToAdmin({
+        bookingId: newBooking.shortId,
+        service: comboService.name,
+        date: newBooking.bookingDate.toISOString().split("T")[0],
+        time: newBooking.startTime,
+        amount: `AUD ${newBooking.totalPrice}`,
+        customerName: `${customer.firstName} ${customer.lastName}`.trim(),
+        customerEmail: customer.email || "N/A",
+        customerPhone: customer.phone ? customer.phone.e164 : "N/A",
+        companyName
+      });
+    } catch (error) {
+      logger.error(
+        `Failed to send booking request submission email to ADMIN for booking ID: ${newBooking._id.toString()}. Error: ${(error as Error).message}`
+      );
+    }
+
     return SendResponse.success({
       res,
       message: "Booking requested successfully",
@@ -402,6 +452,51 @@ export async function requestBookingHandler(
     notes: customerInfo.specialNotes || null,
     status: BookingStatus.PENDING
   });
+
+  const businessInfo = await BusinessInfoModel.findOne({});
+  const companyName = businessInfo?.name || "Royal Threading & Beauty";
+  // Send booking request email to customer
+  if (customer.email) {
+    try {
+      const supportEmail = branch.email;
+      const supportPhone = branch.phone;
+      await sendBookingRequestEmail({
+        bookingId: newBooking.shortId,
+        service: servicesForBooking.map((s) => s.name).join(", "),
+        date: newBooking.bookingDate.toISOString().split("T")[0],
+        time: newBooking.startTime,
+        amount: `AUD ${newBooking.totalPrice}`,
+        customerName: `${customer.firstName} ${customer.lastName}`.trim(),
+        customerEmail: customer.email,
+        companyName,
+        supportEmail,
+        supportPhone: supportPhone.e164
+      });
+    } catch (error) {
+      logger.error(
+        `Failed to send booking request email for booking ID: ${newBooking._id.toString()}. Error: ${(error as Error).message}`
+      );
+    }
+  }
+
+  // Send booking request submission email to admin
+  try {
+    await sendBookingRequestSubmissionEmailToAdmin({
+      bookingId: newBooking.shortId,
+      service: servicesForBooking.map((s) => s.name).join(", "),
+      date: newBooking.bookingDate.toISOString().split("T")[0],
+      time: newBooking.startTime,
+      amount: `AUD ${newBooking.totalPrice}`,
+      customerName: `${customer.firstName} ${customer.lastName}`.trim(),
+      customerEmail: customer.email || "N/A",
+      customerPhone: customer.phone ? customer.phone.e164 : "N/A",
+      companyName
+    });
+  } catch (error) {
+    logger.error(
+      `Failed to send booking request submission email to ADMIN for booking ID: ${newBooking._id.toString()}. Error: ${(error as Error).message}`
+    );
+  }
 
   return SendResponse.success({
     res,
@@ -613,6 +708,35 @@ export async function confirmBookingHandler(
     });
   }
 
+  const customer = await findCustomerById(booking.customerId);
+  if (!customer) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Customer not found",
+        DATA_NOT_FOUND,
+        "Customer not found"
+      )
+    });
+  }
+  const branch = await findBranchById(booking.branchId);
+  if (!branch) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Branch not found",
+        DATA_NOT_FOUND,
+        "Branch not found"
+      )
+    });
+  }
+
   if (booking.status === BookingStatus.CONFIRMED) {
     return SendErrorResponse.badRequest({
       res,
@@ -629,6 +753,42 @@ export async function confirmBookingHandler(
 
   booking.status = BookingStatus.CONFIRMED;
   await booking.save();
+
+  const businessInfo = await BusinessInfoModel.findOne({});
+  const companyName = businessInfo?.name || "Royal Threading & Beauty";
+
+  let services = "";
+  if (booking.serviceType === BookingServiceType.COMBO && booking.comboId) {
+    const comboService = await findComboById(booking.comboId);
+    services = comboService ? comboService.name : "N/A";
+  } else {
+    const serviceDocs = await findServicesByIds(booking.serviceIds || []);
+    services = serviceDocs.map((s) => s.name).join(", ");
+  }
+
+  // Send booking confirmation email to customer
+  if (customer.email) {
+    try {
+      const supportEmail = branch.email;
+      const supportPhone = branch.phone;
+      await sendBookingConfirmationEmail({
+        bookingId: booking.shortId,
+        service: services,
+        date: booking.bookingDate.toISOString().split("T")[0],
+        time: booking.startTime,
+        amount: `AUD ${booking.totalPrice}`,
+        customerName: `${customer.firstName} ${customer.lastName}`.trim(),
+        customerEmail: customer.email,
+        companyName,
+        supportEmail,
+        supportPhone: supportPhone.e164
+      });
+    } catch (error) {
+      logger.error(
+        `Failed to send booking confirmation email for booking ID: ${booking._id.toString()}. Error: ${(error as Error).message}`
+      );
+    }
+  }
 
   return SendResponse.success({
     res,

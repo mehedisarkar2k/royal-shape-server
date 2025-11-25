@@ -4,14 +4,20 @@ export default {
     host: "SERVER_BASE_URL",
     projectName: "PROJECT_NAME",
     environment: "ENVIRONMENT",
-    clientBaseUrl: "CLIENT_BASE_URL"
+    clientBaseUrl: "CLIENT_BASE_URL",
+    adminEmail: "ADMIN_EMAIL"
   },
   db: {
     uri: "MONGODB_URI"
   },
-  smtp: {
-    email: "SMTP_EMAIL",
-    password: "SMTP_PASSWORD"
+  // smtp: {
+  //   email: "SMTP_EMAIL",
+  //   password: "SMTP_PASSWORD"
+  // },
+  brevo: {
+    apiKey: "BREVO_API_KEY",
+    senderEmail: "SENDER_EMAIL",
+    senderName: "SENDER_NAME"
   },
   firebase: {
     projectId: "FIREBASE_PROJECT_ID",

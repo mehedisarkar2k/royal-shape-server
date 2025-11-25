@@ -79,3 +79,19 @@ export const generateUniqueShortBookingId = async (): Promise<string> => {
 
   return id!;
 };
+
+export async function getCustomerBookingHistory(customerId: string, page: number, limit: number) {
+  const skip = (page - 1) * limit;
+  const bookings = await BookingModel.find({ customerId })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .sort({ bookingDate: -1 })
+    .lean();
+
+  return bookings;
+}
+
+export async function countCustomerBookings(customerId: string) {
+  return BookingModel.countDocuments({ customerId });
+}

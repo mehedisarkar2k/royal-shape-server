@@ -10,3 +10,5 @@ export * from "./admin.schema";
 export * from "./engagement.schema";
 export * from "./promotion.schema";
 export * from "./blog.schema";
+export * from "./combo.schema";
+export * from "./award.schema";

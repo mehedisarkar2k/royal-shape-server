@@ -11,3 +11,5 @@ export * from "./engagement.controller";
 export * from "./public.controller";
 export * from "./promotion.controller";
 export * from "./blog.controller";
+export * from "./combo.controller";
+export * from "./award.controller";

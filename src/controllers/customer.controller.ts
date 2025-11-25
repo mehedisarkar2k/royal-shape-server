@@ -1,16 +1,29 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
-import { UpdateCustomerType } from "../schemas";
+import { UpdateAuthenticatedCustomerType, UpdateCustomerType } from "../schemas";
 import {
   createCustomer,
   findCustomerByEmail,
   countAllCustomers,
   findCustomerById,
   findAllCustomersWithBookingDetailsPaginated,
-  deleteCustomerById
+  deleteCustomerById,
+  getCustomerBookingHistory,
+  findServicesByIds,
+  findComboById,
+  findUserById,
+  countCustomerBookings
 } from "../services";
 import { SendErrorResponse, SendResponse } from "../utils";
-import { ApplicationServices, CONFLICT_ERROR, DATA_NOT_FOUND } from "../constants";
+import {
+  ApplicationServices,
+  CONFLICT_ERROR,
+  DATA_NOT_FOUND,
+  INPUT_MISSING,
+  UNEXPECTED_ERROR,
+  UserType
+} from "../constants";
+import { uploadFileR2WithAutoKey } from "../services/r2-storage.service";
 
 const buildErrorPayload = (
   endpoint: string,
@@ -253,5 +266,274 @@ export async function deleteCustomerHandler(req: Request<{ customerId: string }>
     res,
     message: "Customer deleted successfully",
     data: null
+  });
+}
+
+export async function getCustomerBookingHistoryHandler(req: Request, res: Response) {
+  const functionName = getCustomerBookingHistoryHandler.name;
+  const user = res.locals.user;
+  const page = parseInt((req.query.page as string) || "1", 10);
+  const limit = parseInt((req.query.limit as string) || "20", 10);
+
+  if (user.userType !== UserType.CUSTOMER) {
+    return SendErrorResponse.unauthorized({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "This endpoint is only accessible to customers",
+        DATA_NOT_FOUND,
+        "You are not authorized to access this endpoint"
+      )
+    });
+  }
+
+  const customer = await findCustomerByEmail(user.email);
+  if (!customer) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Customer not found",
+        DATA_NOT_FOUND,
+        "Customer not found"
+      )
+    });
+  }
+
+  const bookings = await getCustomerBookingHistory(customer._id.toString(), page, limit);
+  const totalBookings = await countCustomerBookings(customer._id.toString());
+  const totalPages = Math.ceil(totalBookings / limit);
+  const hasNext = page * limit < totalBookings;
+
+  const finalBookings = await Promise.all(
+    bookings.map(async (booking) => {
+      let serviceNames = "";
+      if (booking.serviceIds && booking.serviceIds.length > 0 && !booking.comboId) {
+        const services = await findServicesByIds(booking.serviceIds);
+        serviceNames = services.map((service) => service.name).join(", ");
+      } else {
+        const combo = await findComboById(booking.comboId as string);
+        serviceNames = combo?.name || "Combo Service";
+      }
+      return {
+        id: booking._id.toString(),
+        shortId: booking.shortId,
+        branchId: booking.branchId,
+        branchName: booking.branchName,
+        service: serviceNames,
+        price: booking.totalPrice,
+        date: booking.bookingDate.toISOString().split("T")[0],
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        status: booking.status
+      };
+    })
+  );
+  return SendResponse.success({
+    res,
+    message: "Fetched booking history successfully",
+    data: {
+      items: finalBookings,
+      currentPage: page,
+      limit,
+      totalItems: totalBookings,
+      totalPages,
+      hasNext
+    }
+  });
+}
+
+export async function getAuthenticatedSingleCustomerHandler(req: Request, res: Response) {
+  const functionName = getAuthenticatedSingleCustomerHandler.name;
+  const user = res.locals.user;
+
+  if (user.userType !== UserType.CUSTOMER) {
+    return SendErrorResponse.unauthorized({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "This endpoint is only accessible to customers",
+        DATA_NOT_FOUND,
+        "You are not authorized to access this customer portal"
+      )
+    });
+  }
+
+  const customer = await findCustomerByEmail(user.email);
+  if (!customer) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Customer not found",
+        DATA_NOT_FOUND,
+        "Customer information not found"
+      )
+    });
+  }
+
+  return SendResponse.success({
+    res,
+    message: "Fetched customer information successfully",
+    data: {
+      customer: {
+        userId: customer.userId,
+        id: customer._id.toString(),
+        firstName: customer.firstName,
+        lastName: customer.lastName ?? "",
+        profileImage: customer.profileImage ?? null,
+        email: customer.email,
+        description: customer.description ?? null,
+        phone: customer.phone ?? null
+      }
+    }
+  });
+}
+
+export async function updateAuthenticatedCustomerHandler(
+  req: Request<Record<string, never>, Record<string, never>, UpdateAuthenticatedCustomerType>,
+  res: Response
+) {
+  const functionName = updateAuthenticatedCustomerHandler.name;
+  const currentUser = res.locals.user;
+  const data = req.body;
+
+  if (currentUser.userType !== UserType.CUSTOMER) {
+    return SendErrorResponse.unauthorized({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "This endpoint is only accessible to customers",
+        DATA_NOT_FOUND,
+        "You are not authorized to access this customer portal"
+      )
+    });
+  }
+
+  const user = await findUserById(currentUser._id);
+  if (!user) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "User not found",
+        DATA_NOT_FOUND,
+        "User information not found"
+      )
+    });
+  }
+
+  const customer = await findCustomerByEmail(currentUser.email);
+  if (!customer) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Customer not found",
+        DATA_NOT_FOUND,
+        "Customer information not found"
+      )
+    });
+  }
+
+  if (data.firstName) {
+    customer.firstName = data.firstName.trim();
+    user.firstName = data.firstName.trim();
+  }
+  if (data.lastName !== undefined) {
+    customer.lastName = data.lastName ? data.lastName.trim() : null;
+    user.lastName = data.lastName ? data.lastName.trim() : null;
+  }
+  if (data.phone) {
+    customer.phone = {
+      countryCode: data.phone.countryCode.trim(),
+      number: data.phone.number.trim(),
+      e164: `+${data.phone.countryCode.trim()}${data.phone.number.trim()}`
+    };
+    user.phone = customer.phone;
+  }
+  if (data.profileImage !== undefined) {
+    customer.profileImage = data.profileImage ? data.profileImage.trim() : null;
+    user.profilePicture = customer.profileImage;
+  }
+  await customer.save();
+  await user.save();
+
+  return SendResponse.success({
+    res,
+    message: "Customer profile updated successfully",
+    data: null
+  });
+}
+
+export async function uploadAuthenticatedCustomerProfileImageHandler(req: Request, res: Response) {
+  const functionName = uploadAuthenticatedCustomerProfileImageHandler.name;
+  const { file } = req;
+  if (!file) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "No image file uploaded",
+        INPUT_MISSING,
+        "No image file uploaded"
+      )
+    });
+  }
+
+  const filepath = file.path;
+
+  const fileUploadRes = await uploadFileR2WithAutoKey(filepath, "customer-images", false);
+
+  if (!fileUploadRes.success) {
+    if (fileUploadRes.code === 404) {
+      return SendErrorResponse.notFound({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          fileUploadRes.message || "Image not found",
+          DATA_NOT_FOUND,
+          "Image not found"
+        )
+      });
+    }
+
+    return SendErrorResponse.internalServer({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        fileUploadRes.message || "Image upload failed",
+        UNEXPECTED_ERROR,
+        "Image upload failed"
+      )
+    });
+  }
+
+  return SendResponse.success({
+    res,
+    message: "Image uploaded successfully",
+    data: {
+      url: fileUploadRes.publicUrl
+    }
   });
 }

@@ -33,6 +33,7 @@ export enum ApplicationServices {
   CUSTOMER = "Customer",
   EMPLOYEE = "Employee",
   SERVICE = "Service",
+  COMBO = "Combo",
   CAREER = "Career",
   BLOG = "Blog",
   BOOKING = "Booking",
@@ -40,5 +41,6 @@ export enum ApplicationServices {
   ADMIN = "Admin",
   WEBSITE = "Website",
   ENGAGEMENT = "Engagement",
-  PROMOTION = "Promotion"
+  PROMOTION = "Promotion",
+  AWARD = "Award"
 }

@@ -8,3 +8,5 @@ export * from "./booking.service";
 export * from "./customer.service";
 export * from "./employee.service";
 export * from "./career.service";
+export * from "./combo.service";
+export * from "./award.service";

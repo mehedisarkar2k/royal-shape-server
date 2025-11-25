@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Booking Request Submitted</title>
+    <title>New Booking Request Submitted</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
       /* Minimal responsive tweaks (kept small for email compatibility) */
@@ -48,7 +48,7 @@
     "
   >
     <!-- Preheader (appears in inbox preview) -->
-    <span class="preheader">Your booking request has been received — we'll confirm it shortly.</span>
+    <span class="preheader">A booking request has been received.</span>
 
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
       <tr>
@@ -77,6 +77,14 @@
             <!-- Header -->
             <tr>
               <td style="padding: 32px 24px 24px; text-align: center; background-color: #ffffff">
+                <!-- Logo placeholder -->
+                <img
+                  src="https://pub-143c0179908045b5806a90fec6b91bae.r2.dev/website-images/1764071862719-4537f8e1-bb8d-42bd-8d23-f6dab52ab8ff-1764071862716---logo-2-1--2-.png"
+                  width="100"
+                  height="100"
+                  alt="Company logo"
+                  style="display: block; margin: 0 auto 20px; border: 0; outline: none; text-decoration: none"
+                />
                 <h1
                   style="
                     margin: 0;
@@ -87,30 +95,10 @@
                     letter-spacing: -0.5px;
                   "
                 >
-                  {{companyName}}
-                </h1>
-                <!-- Logo placeholder -->
-                <img
-                  src="https://pub-143c0179908045b5806a90fec6b91bae.r2.dev/website-images/1764071862719-4537f8e1-bb8d-42bd-8d23-f6dab52ab8ff-1764071862716---logo-2-1--2-.png"
-                  width="100"
-                  height="100"
-                  alt="Company logo"
-                  style="display: block; margin: 0 auto 20px; border: 0; outline: none; text-decoration: none"
-                />
-                <h2
-                  style="
-                    margin: 0;
-                    font-size: 24px;
-                    line-height: 36px;
-                    color: #1a1a1a;
-                    font-weight: 700;
-                    letter-spacing: -0.5px;
-                  "
-                >
                   Booking Request Submitted
-                </h2>
+                </h1>
                 <p style="margin: 12px 0 0; font-size: 16px; color: #6b7280; line-height: 1.5">
-                  Thanks, {{customerName}} — we received your booking request.
+                  A booking request has been submitted from {{customerName}}.
                 </p>
                 <div
                   style="
@@ -144,13 +132,6 @@
                         background: linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%);
                       "
                     >
-                      <p style="margin: 0 0 16px; font-size: 16px; color: #1a1a1a; line-height: 1.6">
-                        Hi <strong>{{customerName}}</strong>,
-                      </p>
-                      <p style="margin: 0 0 20px; font-size: 15px; color: #374151; line-height: 1.6">
-                        We have successfully received your booking request. Below are the details we have on record:
-                      </p>
-
                       <!-- Booking details -->
                       <table
                         width="100%"
@@ -165,6 +146,78 @@
                           overflow: hidden;
                         "
                       >
+                        <tr>
+                          <td
+                            style="
+                              padding: 14px 16px;
+                              font-size: 14px;
+                              color: #da1f5c;
+                              width: 36%;
+                              font-weight: 600;
+                              border-bottom: 1px solid #f3f4f6;
+                            "
+                          >
+                            Customer Name
+                          </td>
+                          <td
+                            style="
+                              padding: 14px 16px;
+                              font-size: 14px;
+                              color: #1a1a1a;
+                              border-bottom: 1px solid #f3f4f6;
+                            "
+                          >
+                            <strong>{{customerName}}</strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            style="
+                              padding: 14px 16px;
+                              font-size: 14px;
+                              color: #da1f5c;
+                              width: 36%;
+                              font-weight: 600;
+                              border-bottom: 1px solid #f3f4f6;
+                            "
+                          >
+                            Customer Email
+                          </td>
+                          <td
+                            style="
+                              padding: 14px 16px;
+                              font-size: 14px;
+                              color: #1a1a1a;
+                              border-bottom: 1px solid #f3f4f6;
+                            "
+                          >
+                            <strong>{{customerEmail}}</strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            style="
+                              padding: 14px 16px;
+                              font-size: 14px;
+                              color: #da1f5c;
+                              width: 36%;
+                              font-weight: 600;
+                              border-bottom: 1px solid #f3f4f6;
+                            "
+                          >
+                            Customer Phone
+                          </td>
+                          <td
+                            style="
+                              padding: 14px 16px;
+                              font-size: 14px;
+                              color: #1a1a1a;
+                              border-bottom: 1px solid #f3f4f6;
+                            "
+                          >
+                            <strong>{{customerPhone}}</strong>
+                          </td>
+                        </tr>
                         <tr>
                           <td
                             style="
@@ -242,50 +295,6 @@
                           </td>
                         </tr>
                       </table>
-                    </td>
-                  </tr>
-
-                  <!-- Next steps / notes -->
-                  <tr>
-                    <td style="padding: 24px 0 0">
-                      <div
-                        style="
-                          background: linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%);
-                          border-left: 4px solid #da1f5c;
-                          padding: 20px;
-                          border-radius: 0 12px 12px 0;
-                          border: 1px solid #e5e7eb;
-                          border-left: 4px solid #da1f5c;
-                        "
-                      >
-                        <p style="margin: 0 0 12px; font-size: 15px; color: #1a1a1a; font-weight: 600">
-                          What happens next?
-                        </p>
-                        <ul style="margin: 0 0 0 20px; padding: 0; color: #374151; font-size: 14px; line-height: 1.7">
-                          <li style="margin-bottom: 8px">
-                            We'll confirm availability and send a final confirmation email or call.
-                          </li>
-                          <li style="margin-bottom: 8px">
-                            If we need more details, our team will contact you at the phone/email on file.
-                          </li>
-                          <li style="margin-bottom: 0">You'll receive an update within 24 hours.</li>
-                        </ul>
-                      </div>
-                    </td>
-                  </tr>
-
-                  <!-- Support -->
-                  <tr>
-                    <td style="padding: 24px 0 0">
-                      <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6">
-                        Need help? Reply to this email or contact our support:
-                        <a
-                          href="mailto:support@example.com"
-                          style="color: #da1f5c; text-decoration: none; font-weight: 600"
-                          >{{supportEmail}}</a
-                        >
-                        · <span style="color: #374151; font-weight: 500">{{supportPhone}}</span>
-                      </p>
                     </td>
                   </tr>
                 </table>

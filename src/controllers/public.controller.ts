@@ -1,11 +1,14 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
 import { SendErrorResponse, SendResponse } from "../utils";
-import { BusinessInfoModel, WeeklySchedule } from "../model";
-import { ApplicationServices, DATA_NOT_FOUND, INPUT_MISSING, UNEXPECTED_ERROR } from "../constants";
+import { BlogModel, BusinessInfoModel, PromotionModel, WeeklySchedule } from "../model";
+import { ApplicationServices, BlogStatus, DATA_NOT_FOUND, INPUT_MISSING, UNEXPECTED_ERROR } from "../constants";
 import {
+  findAllAwardsPaginated,
   findAllBranches,
   findAllCareerPosts,
+  findAllCombos,
+  findAllCombosOfBranch,
   findAllEmployeesPaginated,
   findAllServiceCategories,
   findAllServiceCategoriesOfBranch,
@@ -182,6 +185,19 @@ export async function getWebsiteHomePublicDataHandler(req: Request, res: Respons
     comment: review.comment
   }));
 
+  const promotions = await PromotionModel.find({ isActive: true }).sort({ createdAt: -1 });
+
+  const awards = await findAllAwardsPaginated(1, 10);
+  const finalAwards = awards.map((award) => ({
+    id: award._id.toString(),
+    title: award.title,
+    issuer: award.issuer,
+    year: award.year,
+    description: award.description,
+    badgeImage: award.badgeImage,
+    category: award.category
+  }));
+
   return SendResponse.success({
     res,
     message: "Website home public data fetched successfully",
@@ -196,28 +212,20 @@ export async function getWebsiteHomePublicDataHandler(req: Request, res: Respons
         ctaButton1: homeData.heroSection.ctaButton1,
         ctaButton2: homeData.heroSection.ctaButton2
       },
-      promotions: [
-        // TODO: fetch from DB later
-        {
-          id: 1,
-          title: "Limited Time Offer",
-          description: "Get 20% off on your first purchase",
-          image:
-            "https://pub-143c0179908045b5806a90fec6b91bae.r2.dev/website-images/1760513743423-7bf4a5d3-e979-43e3-bf6f-1d4f54d07476-1760513743418---threading.png",
-          buttonText: "Book Now",
-          buttonLink: "https://example.com/promo1"
-        },
-        {
-          id: 2,
-          title: "Free Shipping",
-          description: "Enjoy free shipping on orders over $50",
-          image:
-            "https://pub-143c0179908045b5806a90fec6b91bae.r2.dev/website-images/1760513743423-7bf4a5d3-e979-43e3-bf6f-1d4f54d07476-1760513743418---threading.png",
-          buttonText: "Shop Now",
-          buttonLink: "https://example.com/promo2"
-        }
-      ],
+      promotions: promotions.map((promo) => ({
+        id: promo._id.toString(),
+        title: promo.title,
+        titleColor: promo.titleColor,
+        description: promo.description,
+        descriptionColor: promo.descriptionColor,
+        image: promo.bannerImage,
+        buttonText: promo.buttonText,
+        buttonBgColor: promo.buttonBgColor,
+        buttonTextColor: promo.buttonTextColor,
+        buttonLink: promo.buttonLink
+      })),
       servicesCategories: services,
+      awards: finalAwards,
       experts,
       branches: finalBranches,
       showcase,
@@ -258,6 +266,15 @@ export async function getWebsiteFooterPublicDataHandler(req: Request, res: Respo
     });
   }
 
+  const branches = await findAllBranches();
+  const finalBranches = branches.map((branch) => ({
+    id: branch._id.toString(),
+    name: branch.name,
+    address: branch.address,
+    phone: branch.phone,
+    email: branch.email
+  }));
+
   const footerData = {
     businessName: businessInfo.name || "Royal Threading & Beauty",
     businessDescription: businessInfo.description || "Elevating your natural beauty with professional beauty services.",
@@ -275,7 +292,8 @@ export async function getWebsiteFooterPublicDataHandler(req: Request, res: Respo
       phone: businessInfo.phone,
       email: businessInfo.email,
       address: businessInfo.address
-    }
+    },
+    branches: finalBranches
   };
 
   return SendResponse.success({
@@ -296,49 +314,154 @@ export async function getWebsiteServicesPageDataHandler(req: Request, res: Respo
     image: category.thumbnail
   }));
 
+  const comboServices = await findAllCombos();
+  const finalComboServices = comboServices.map((combo) => ({
+    id: combo._id.toString(),
+    name: combo.name,
+    description: combo.description,
+    price: combo.price,
+    currency: combo.currency,
+    features: combo.comboItems,
+    mostPopular: false
+  }));
+  if (finalComboServices.length > 1) {
+    finalComboServices[1].mostPopular = true;
+  }
+
   return SendResponse.success({
     res,
     message: "Website services page public data fetched successfully",
     data: {
       services: finalServicesCategories,
-      combos: [
-        // TODO: fetch from DB later
-        {
-          name: "Basic Package",
-          description: "Perfect for beginners who want to try our services",
-          price: 120,
-          mostPopular: false,
-          currency: "AUD",
-          features: ["Eyebrow Threading & Tinting", "Express Facial", "Classic Manicure"]
-        },
-        {
-          name: "Premium Package",
-          description: "Our most popular package for complete beauty experience",
-          price: 220,
-          currency: "AUD",
-          mostPopular: true,
-          features: [
-            "Full Face Threading & Tinting",
-            "Deluxe Facial Treatment",
-            "Eyelash Extensions",
-            "Henna Design (Small)"
-          ]
-        },
-        {
-          name: "Luxury Package",
-          description: "Ultimate beauty transformation for special occasions",
-          price: 350,
-          currency: "AUD",
-          mostPopular: false,
-          features: [
-            "Complete Threading & Tinting",
-            "Premium Facial & Massage",
-            "Professional Makeup",
-            "Eyelash Extensions & Lifting",
-            "Elaborate Henna Design"
-          ]
-        }
-      ]
+      combos: finalComboServices
+    }
+  });
+}
+
+export async function getWebsiteSingleServicePageDataHandler(req: Request, res: Response) {
+  const functionName = getWebsiteSingleServicePageDataHandler.name;
+  const { serviceId } = req.params;
+
+  const businessInfo = await BusinessInfoModel.findOne();
+  if (!businessInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Business info not found",
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const websiteInfo = businessInfo.websiteInfo;
+  if (!websiteInfo) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Website info not found",
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const services = websiteInfo.services;
+  if (!services) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Website services data not found",
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const serviceData = services.find((s) => s.serviceId === serviceId);
+  if (!serviceData) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        `No service found with the ID: ${serviceId}`,
+        DATA_NOT_FOUND,
+        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
+      )
+    });
+  }
+
+  const serviceItems = await findServicesByCategoryId(serviceId);
+  const serviceItemsFormatted = serviceItems.map((service) => ({
+    id: service._id.toString(),
+    name: service.name,
+    description: service.description,
+    price: service.price,
+    duration: service.duration,
+    image: service.thumbnail
+  }));
+
+  const employees = await findAllEmployeesPaginated(1, 4);
+  const experts = employees.map((employee) => ({
+    id: employee._id.toString(),
+    name: employee.name,
+    designation: employee.jobRole,
+    profileImage: employee.profileImage,
+    specialization:
+      employee.specialization?.length === 0 ? ["Modern Patterns", "Special Events"] : employee.specialization,
+    rating: employee.rating || 5
+  }));
+
+  const branches = await findAllBranches();
+  const finalBranches = branches.map((branch) => {
+    const openingHourStr = formatWeeklySchedule(branch.weeklySchedule);
+    return {
+      id: branch._id.toString(),
+      name: branch.name,
+      address: branch.address,
+      phone: branch.phone,
+      email: branch.email,
+      rating: branch.rating,
+      openingHours: openingHourStr,
+      latitude: branch.latitude,
+      longitude: branch.longitude
+    };
+  });
+
+  // const reviews = await ReviewModel.find({ showInWebsite: true }).sort({ rating: -1 }).limit(5);
+  // const testimonials = reviews.map((review) => ({
+  //   id: review._id.toString(),
+  //   customerName: review.customerName,
+  //   customerImage: review.customerImage,
+  //   rating: review.rating,
+  //   comment: review.comment
+  // }));
+
+  return SendResponse.success({
+    res,
+    message: "Website single service page public data fetched successfully",
+    data: {
+      service: {
+        id: serviceData.serviceId,
+        name: serviceData.serviceName,
+        heroSection: serviceData.heroSection,
+        bodySections: serviceData.bodySections,
+        serviceItemsWeProvide: serviceItemsFormatted,
+        experts: experts,
+        branches: finalBranches
+        // testimonials: testimonials
+      }
     }
   });
 }
@@ -489,6 +612,55 @@ export async function getWebsiteAboutPageDataHandler(req: Request, res: Response
     };
   });
 
+  // TODO: fetch from DB later
+  const awards = [
+    {
+      id: "1",
+      title: "Best Salon Design",
+      issuer: "Beauty Excellence Awards",
+      year: "2024",
+      description: "Recognized for innovative salon design and customer experience excellence",
+      badgeImage: "/awards/badge-gold-design.png",
+      category: "Design"
+    },
+    {
+      id: "2",
+      title: "Excellence in Beauty Services",
+      issuer: "International Beauty Forum",
+      year: "2024",
+      description: "Outstanding achievement in beauty treatments and professional services",
+      badgeImage: "/awards/badge-silver-services.png",
+      category: "Services"
+    },
+    {
+      id: "3",
+      title: "Premium Brand Recognition",
+      issuer: "Global Beauty Excellence",
+      year: "2023",
+      description: "Leading contributor in luxury beauty and wellness experiences",
+      badgeImage: "/awards/badge-platinum-brand.png",
+      category: "Brand"
+    },
+    {
+      id: "4",
+      title: "Creative Innovation Award",
+      issuer: "Beauty Summit Global",
+      year: "2023",
+      description: "Innovation in beauty treatments and creative styling solutions",
+      badgeImage: "/awards/badge-bronze-innovation.png",
+      category: "Innovation"
+    },
+    {
+      id: "5",
+      title: "Customer Choice Award",
+      issuer: "Beauty Leaders Conference",
+      year: "2024",
+      description: "Excellence in customer satisfaction and service quality",
+      badgeImage: "/awards/badge-customer-choice.png",
+      category: "Excellence"
+    }
+  ];
+
   return SendResponse.success({
     res,
     message: "Website about page public data fetched successfully",
@@ -533,7 +705,8 @@ export async function getWebsiteAboutPageDataHandler(req: Request, res: Response
         tiktok: businessInfo.socialInfo.tiktok || ""
       },
       branches: finalBranches,
-      experts
+      experts,
+      awards
     }
   });
 }
@@ -890,6 +1063,16 @@ export async function getWebsiteBranchServicesPublicDataHandler(req: Request, re
     })
   );
 
+  const comboServices = await findAllCombosOfBranch(branch._id.toString());
+  const finalComboServices = comboServices.map((combo) => ({
+    id: combo._id.toString(),
+    name: combo.name,
+    description: combo.description,
+    price: combo.price,
+    currency: combo.currency,
+    features: combo.comboItems
+  }));
+
   return SendResponse.success({
     res,
     message: "Website pricing page data fetched successfully",
@@ -897,41 +1080,149 @@ export async function getWebsiteBranchServicesPublicDataHandler(req: Request, re
       individualServices: {
         serviceCategories: finalServicesCategories
       },
-      serviceCombos: [
-        // TODO: fetch from DB later
-        {
-          name: "Basic Package",
-          description: "Perfect for beginners who want to try our services",
-          price: 120,
-          currency: "AUD",
-          features: ["Eyebrow Threading & Tinting", "Express Facial", "Classic Manicure"]
-        },
-        {
-          name: "Premium Package",
-          description: "Our most popular package for complete beauty experience",
-          price: 220,
-          currency: "AUD",
-          features: [
-            "Full Face Threading & Tinting",
-            "Deluxe Facial Treatment",
-            "Eyelash Extensions",
-            "Henna Design (Small)"
-          ]
-        },
-        {
-          name: "Luxury Package",
-          description: "Ultimate beauty transformation for special occasions",
-          price: 350,
-          currency: "AUD",
-          features: [
-            "Complete Threading & Tinting",
-            "Premium Facial & Massage",
-            "Professional Makeup",
-            "Eyelash Extensions & Lifting",
-            "Elaborate Henna Design"
-          ]
-        }
-      ]
+      serviceCombos: finalComboServices || []
+    }
+  });
+}
+
+export async function getBlogCategoriesAndTagsHandler(req: Request, res: Response) {
+  // const functionName = getBlogCategoriesAndTagsHandler.name;
+
+  const blogPosts = await BlogModel.find({ status: BlogStatus.PUBLISHED });
+  const categorySet = new Set<string>();
+  const tagSet = new Set<string>();
+
+  blogPosts.forEach((post) => {
+    categorySet.add(post.category);
+    (post.tags || []).forEach((tag) => tagSet.add(tag));
+  });
+
+  const categories = Array.from(categorySet);
+  const tags = Array.from(tagSet);
+
+  return SendResponse.success({
+    res,
+    message: "Blog categories and tags fetched successfully",
+    data: {
+      blog: { categories, tags }
+    }
+  });
+}
+
+export async function getAllPublishedBlogsHandler(req: Request, res: Response) {
+  // const functionName = getAllPublishedBlogsHandler.name;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+
+  const blogs = await BlogModel.find({ status: BlogStatus.PUBLISHED })
+    .sort({ publishedAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit);
+
+  const totalBlogs = await BlogModel.countDocuments({ status: BlogStatus.PUBLISHED });
+  const totalPages = Math.ceil(totalBlogs / limit);
+
+  const hasNext = page < totalPages;
+
+  const formattedBlogs = blogs.map((blog) => {
+    // calculate estimated reading time based on character count
+    const wordsPerMinute = 200;
+    const text = blog.content || "";
+    const textLength = text.split(" ").length;
+    const estimatedReadingTime = Math.ceil(textLength / wordsPerMinute);
+
+    return {
+      id: blog._id.toString(),
+      title: blog.title,
+      category: blog.category,
+      publishedAt: blog.publishedAt,
+      author: blog.author,
+      tags: blog.tags,
+      excerpt: blog.briefDescription,
+      coverImage: blog.featuredImage,
+      estimatedReadingTime
+    };
+  });
+
+  return SendResponse.success({
+    res,
+    message: "Published blogs fetched successfully",
+    data: {
+      items: formattedBlogs,
+      totalItems: totalBlogs,
+      totalPages,
+      currentPage: page,
+      limit,
+      hasNext
+    }
+  });
+}
+
+export async function getSinglePublishedBlogHandler(req: Request, res: Response) {
+  const functionName = getSinglePublishedBlogHandler.name;
+  const { blogId } = req.params;
+
+  const blog = await BlogModel.findById(blogId);
+  if (!blog || blog.status !== BlogStatus.PUBLISHED) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        `No published blog post found with the ID: ${blogId}`,
+        DATA_NOT_FOUND,
+        "The requested blog post does not exist or is not published."
+      )
+    });
+  }
+
+  const wordsPerMinute = 200;
+  const text = blog.content || "";
+  const textLength = text.split(" ").length;
+  const estimatedReadingTime = Math.ceil(textLength / wordsPerMinute);
+
+  const relatedBlogs = await BlogModel.find({
+    _id: { $ne: blog._id },
+    category: blog.category,
+    status: BlogStatus.PUBLISHED
+  })
+    .sort({ publishedAt: -1 })
+    .limit(4);
+
+  return SendResponse.success({
+    res,
+    message: "Published blog fetched successfully",
+    data: {
+      blog: {
+        id: blog._id.toString(),
+        title: blog.title,
+        category: blog.category,
+        publishedAt: blog.publishedAt,
+        author: blog.author,
+        tags: blog.tags,
+        excerpt: blog.briefDescription,
+        coverImage: blog.featuredImage,
+        estimatedReadingTime,
+        content: blog.content
+      },
+      relatedBlogs: relatedBlogs.map((relatedBlog) => {
+        const wordsPerMinute = 200;
+        const text = relatedBlog.content || "";
+        const textLength = text.split(" ").length;
+        const readingTime = Math.ceil(textLength / wordsPerMinute);
+        return {
+          id: relatedBlog._id.toString(),
+          title: relatedBlog.title,
+          category: relatedBlog.category,
+          publishedAt: relatedBlog.publishedAt,
+          author: relatedBlog.author,
+          tags: relatedBlog.tags,
+          excerpt: relatedBlog.briefDescription,
+          coverImage: relatedBlog.featuredImage,
+          estimatedReadingTime: readingTime
+        };
+      })
     }
   });
 }

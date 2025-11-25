@@ -1,0 +1,138 @@
+<!doctype html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #f5f5f7; font-family: Arial, Helvetica, sans-serif">
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="background-color: #f5f5f7; padding: 20px 0"
+    >
+      <tr>
+        <td align="center">
+          <!-- main container -->
+          <table
+            role="presentation"
+            width="600"
+            cellpadding="0"
+            cellspacing="0"
+            style="background: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e9e9eb"
+          >
+            ```
+            <!-- header: logo + brand -->
+            <tr>
+              <td style="padding: 24px 28px 8px 28px; text-align: left">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="vertical-align: middle">
+                      <img
+                        src="https://pub-143c0179908045b5806a90fec6b91bae.r2.dev/website-images/1764071862719-4537f8e1-bb8d-42bd-8d23-f6dab52ab8ff-1764071862716---logo-2-1--2-.png"
+                        alt="Brand Logo"
+                        width="50"
+                        height="50"
+                        style="display: block; border: 0; outline: none; text-decoration: none"
+                      />
+                    </td>
+                    <td style="text-align: right; vertical-align: middle">
+                      <span style="font-size: 18px; font-weight: 700; color: #111111">{{companyName}}</span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- hero / message -->
+            <tr>
+              <td style="padding: 20px 28px 18px 28px">
+                <h1 style="margin: 0 0 12px 0; font-size: 20px; line-height: 1.3; color: #111111; font-weight: 700">
+                  How did we do?
+                </h1>
+                <p style="margin: 0 0 16px 0; color: #555558; font-size: 15px; line-height: 1.6">
+                  Hi <strong>Customer</strong>,<br /><br />
+                  Thank you for choosing <strong>{{companyName}}</strong>. We hope our service met your expectations —
+                  your feedback helps us improve and helps others make better choices.
+                </p>
+                <p style="margin: 0 0 20px 0; color: #555558; font-size: 15px; line-height: 1.6">
+                  Would you take a minute to share your experience with us? It’s quick and would mean a lot.
+                </p>
+
+                <!-- button -->
+                <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 18px 0">
+                  <tr>
+                    <td align="center">
+                      <!-- Replace href with your actual review link -->
+                      <a
+                        href="{{reviewLink}}"
+                        target="_blank"
+                        style="
+                          display: inline-block;
+                          padding: 12px 22px;
+                          border-radius: 6px;
+                          background-color: #da1f5c;
+                          color: #ffffff;
+                          font-weight: 600;
+                          text-decoration: none;
+                          font-size: 15px;
+                        "
+                      >
+                        Write Review
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin: 0; color: #8a8a8f; font-size: 13px; line-height: 1.5">
+                  If you have any immediate concerns or need help, reply to this email or contact our support at
+                  <a href="mailto:{{companyEmail}}" style="color: #da1f5c; text-decoration: none">{{companyEmail}}</a>.
+                </p>
+              </td>
+            </tr>
+
+            <!-- divider -->
+            <tr>
+              <td style="padding: 0 28px">
+                <hr style="border: none; border-top: 1px solid #f0f0f2; margin: 0" />
+              </td>
+            </tr>
+
+            <!-- footer -->
+            <tr>
+              <td style="padding: 16px 28px 28px 28px">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="vertical-align: top; color: #8a8a8f; font-size: 13px; line-height: 1.5">
+                      <div style="font-weight: 700; color: #111111; margin-bottom: 6px">{{companyName}}</div>
+                      <div>Email: {{companyEmail}}</div>
+                      <div style="margin-top: 6px">Phone: {{companyPhone}}</div>
+                    </td>
+                    <td
+                      style="text-align: right; vertical-align: top; color: #8a8a8f; font-size: 13px; line-height: 1.5"
+                    >
+                      <div style="margin-bottom: 8px">
+                        <a href="{{websiteLink}}" style="color: #da1f5c; text-decoration: none; font-weight: 600"
+                          >Visit our website</a
+                        >
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colspan="2" style="padding-top: 12px; font-size: 12px; color: #c1c1c6; text-align: center">
+                      &copy; {{copyRightYear}} {{companyName}}. All rights reserved.
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <!-- end main container -->
+        </td>
+      </tr>
+      ```
+    </table>
+  </body>
+</html>

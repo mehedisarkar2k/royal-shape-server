@@ -3,7 +3,8 @@ export default {
     port: "PORT",
     host: "SERVER_BASE_URL",
     projectName: "PROJECT_NAME",
-    environment: "ENVIRONMENT"
+    environment: "ENVIRONMENT",
+    clientBaseUrl: "CLIENT_BASE_URL"
   },
   db: {
     uri: "MONGODB_URI"

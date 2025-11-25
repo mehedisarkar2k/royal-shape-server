@@ -17,7 +17,7 @@ import {
   findServicesByCategoryId
 } from "../services";
 import { ReviewModel } from "../model/review.model";
-import { ApplyCareerPostType } from "../schemas";
+import { ApplyCareerPostType, SubmitReviewInput } from "../schemas";
 import { uploadFileR2WithAutoKey } from "../services/r2-storage.service";
 import { DateTime } from "luxon";
 
@@ -1224,5 +1224,41 @@ export async function getSinglePublishedBlogHandler(req: Request, res: Response)
         };
       })
     }
+  });
+}
+
+export async function submitReviewPublicHandler(
+  req: Request<Record<string, never>, Response, SubmitReviewInput>,
+  res: Response
+) {
+  const functionName = submitReviewPublicHandler.name;
+  const { customerName, customerEmail, customerImage, rating, comment } = req.body;
+
+  const newReview = await ReviewModel.create({
+    customerName,
+    customerEmail,
+    customerImage,
+    rating,
+    comment,
+    showInWebsite: false
+  });
+  if (!newReview) {
+    return SendErrorResponse.internalServer({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Failed to submit review",
+        UNEXPECTED_ERROR,
+        "An error occurred while submitting your review. Please try again later."
+      )
+    });
+  }
+
+  return SendResponse.success({
+    res,
+    message: "Review submitted successfully",
+    data: null
   });
 }

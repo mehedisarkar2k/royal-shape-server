@@ -2,7 +2,7 @@
 
 import fs from "fs";
 import path from "path";
-import nodemailer from "nodemailer";
+import axios from "axios";
 import { format } from "date-fns";
 import config from "config";
 
@@ -21,31 +21,64 @@ const loadTemplate = (templateName: string, data: unknown): string => {
   return output;
 };
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587, // secure:465 - non-secure:587
-  secure: false,
-  auth: {
-    user: process.env.SMTP_EMAIL || (config.get("smtp.email") as string),
-    pass: process.env.SMTP_PASSWORD || (config.get("smtp.password") as string)
-  }
-});
+// Brevo API configuration
+const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
+const BREVO_API_KEY = process.env.BREVO_API_KEY || (config.get("brevo.apiKey") as string);
+const SENDER_EMAIL = process.env.SENDER_EMAIL || (config.get("brevo.senderEmail") as string);
+const SENDER_NAME = process.env.SENDER_NAME || (config.get("brevo.senderName") as string) || "Royal Shape";
+
+// Verify Brevo configuration on startup
+if (!BREVO_API_KEY) {
+  console.error("⚠️  BREVO_API_KEY is not configured!");
+} else {
+  console.log("✅ Brevo API Ready");
+}
 
 export const sendEmail = async (to: string, subject: string, html: string) => {
-  const mailOptions = {
-    from: process.env.SMTP_EMAIL || (config.get("smtp.email") as string),
-    to,
-    subject,
-    html
-  };
-
-  console.log("Email options:", mailOptions);
-
   try {
-    await transporter.sendMail(mailOptions);
-    logger.info(`Email sent to ${to}`);
+    const response = await axios.post(
+      BREVO_API_URL,
+      {
+        sender: {
+          email: SENDER_EMAIL,
+          name: SENDER_NAME
+        },
+        to: [
+          {
+            email: to
+          }
+        ],
+        subject: subject,
+        htmlContent: html
+      },
+      {
+        headers: {
+          "api-key": BREVO_API_KEY,
+          "Content-Type": "application/json",
+          accept: "application/json"
+        },
+        timeout: 10000 // 10 second timeout
+      }
+    );
+
+    logger.info(`✅ Email sent successfully to ${to} | Message ID: ${response.data.messageId}`);
+    return { success: true, messageId: response.data.messageId };
   } catch (error) {
-    logger.error(`Error sending email to ${to}: ${(error as Error).message}`);
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.message || error.message;
+      const errorCode = error.response?.data?.code || error.code;
+      logger.error(`❌ Failed to send email to ${to} | Error: ${errorMessage} | Code: ${errorCode}`);
+
+      // Log detailed error for debugging
+      if (error.response) {
+        logger.error(`Response status: ${error.response.status}`);
+        logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
+      }
+    } else {
+      logger.error(`❌ Unexpected error sending email to ${to}: ${(error as Error).message}`);
+    }
+
+    throw error; // Re-throw to allow caller to handle
   }
 };
 
@@ -70,7 +103,7 @@ export const sendContactUsEmail = async ({
     copyRightYear
   });
 
-  await sendEmail(process.env.SMTP_EMAIL || (config.get("smtp.email") as string), subject, html);
+  await sendEmail(process.env.ADMIN_EMAIL || (config.get("server.adminEmail") as string), subject, html);
 };
 
 export const sendBookingRequestEmail = async (data: {
@@ -113,7 +146,7 @@ export const sendBookingRequestSubmissionEmailToAdmin = async (data: {
     copyRightYear
   });
 
-  await sendEmail(process.env.SMTP_EMAIL || (config.get("smtp.email") as string), subject, html);
+  await sendEmail(process.env.ADMIN_EMAIL || (config.get("server.adminEmail") as string), subject, html);
 };
 
 export const sendBookingConfirmationEmail = async (data: {

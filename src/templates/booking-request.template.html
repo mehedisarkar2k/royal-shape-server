@@ -77,14 +77,6 @@
             <!-- Header -->
             <tr>
               <td style="padding: 32px 24px 24px; text-align: center; background-color: #ffffff">
-                <!-- Logo placeholder -->
-                <img
-                  src="https://pub-143c0179908045b5806a90fec6b91bae.r2.dev/website-images/1760596964765-e98d68c1-8c1b-4bb5-b32a-4a53cbae4246-1760596964758---logo.svg"
-                  width="100"
-                  height="100"
-                  alt="Company logo"
-                  style="display: block; margin: 0 auto 20px; border: 0; outline: none; text-decoration: none"
-                />
                 <h1
                   style="
                     margin: 0;
@@ -95,10 +87,30 @@
                     letter-spacing: -0.5px;
                   "
                 >
-                  Booking Request Submitted
+                  {{companyName}}
                 </h1>
+                <!-- Logo placeholder -->
+                <img
+                  src="https://pub-143c0179908045b5806a90fec6b91bae.r2.dev/website-images/1760596964765-e98d68c1-8c1b-4bb5-b32a-4a53cbae4246-1760596964758---logo.svg"
+                  width="100"
+                  height="100"
+                  alt="Company logo"
+                  style="display: block; margin: 0 auto 20px; border: 0; outline: none; text-decoration: none"
+                />
+                <h2
+                  style="
+                    margin: 0;
+                    font-size: 24px;
+                    line-height: 36px;
+                    color: #1a1a1a;
+                    font-weight: 700;
+                    letter-spacing: -0.5px;
+                  "
+                >
+                  Booking Request Submitted
+                </h2>
                 <p style="margin: 12px 0 0; font-size: 16px; color: #6b7280; line-height: 1.5">
-                  Thanks, {{name}} — we received your booking request.
+                  Thanks, {{customerName}} — we received your booking request.
                 </p>
                 <div
                   style="
@@ -133,7 +145,7 @@
                       "
                     >
                       <p style="margin: 0 0 16px; font-size: 16px; color: #1a1a1a; line-height: 1.6">
-                        Hi <strong>{{name}}</strong>,
+                        Hi <strong>{{customerName}}</strong>,
                       </p>
                       <p style="margin: 0 0 20px; font-size: 15px; color: #374151; line-height: 1.6">
                         We have successfully received your booking request. Below are the details we have on record:
@@ -174,7 +186,7 @@
                               border-bottom: 1px solid #f3f4f6;
                             "
                           >
-                            <strong>{{booking_id}}</strong>
+                            <strong>{{bookingId}}</strong>
                           </td>
                         </tr>
                         <tr>
@@ -292,10 +304,12 @@
                   border-top: 1px solid #e5e7eb;
                 "
               >
-                <p style="margin: 0 0 8px; line-height: 1.6">{{companyName}} · {{companyAddress}}</p>
+                <p style="margin: 0 0 8px; line-height: 1.6">
+                  &copy;{{copyRightYear}} {{companyName}}. All rights reserved.
+                </p>
                 <p style="margin: 0; line-height: 1.6">
                   If you didn't request this booking, please
-                  <a href="mailto:support@example.com" style="color: #da1f5c; text-decoration: none; font-weight: 600"
+                  <a href="mailto:{{supportEmail}}" style="color: #da1f5c; text-decoration: none; font-weight: 600"
                     >contact support</a
                   >.
                 </p>

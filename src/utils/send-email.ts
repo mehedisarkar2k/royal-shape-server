@@ -68,3 +68,68 @@ export const sendContactUsEmail = async ({
 
   await sendEmail(process.env.SMTP_EMAIL || (config.get("smtp.email") as string), subject, html);
 };
+
+export const sendBookingRequestEmail = async (data: {
+  bookingId: string;
+  service: string;
+  date: string;
+  time: string;
+  amount: string;
+  customerName: string;
+  customerEmail: string;
+  companyName: string;
+  supportEmail: string;
+  supportPhone: string;
+}) => {
+  const subject = `New booking request: ${data.companyName} `;
+  const copyRightYear = format(new Date(), "yyyy");
+  const html = loadTemplate("booking-request.template", {
+    ...data,
+    copyRightYear
+  });
+
+  await sendEmail(data.customerEmail, subject, html);
+};
+
+export const sendBookingRequestSubmissionEmailToAdmin = async (data: {
+  bookingId: string;
+  service: string;
+  date: string;
+  time: string;
+  amount: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  companyName: string;
+}) => {
+  const subject = `New booking request submitted from ${data.customerName} `;
+  const copyRightYear = format(new Date(), "yyyy");
+  const html = loadTemplate("booking-request-admin.template", {
+    ...data,
+    copyRightYear
+  });
+
+  await sendEmail(process.env.SMTP_EMAIL || (config.get("smtp.email") as string), subject, html);
+};
+
+export const sendBookingConfirmationEmail = async (data: {
+  bookingId: string;
+  service: string;
+  date: string;
+  time: string;
+  amount: string;
+  customerName: string;
+  customerEmail: string;
+  companyName: string;
+  supportEmail: string;
+  supportPhone: string;
+}) => {
+  const subject = `Booking confirmed: ${data.companyName} `;
+  const copyRightYear = format(new Date(), "yyyy");
+  const html = loadTemplate("booking-confirm.template", {
+    ...data,
+    copyRightYear
+  });
+
+  await sendEmail(data.customerEmail, subject, html);
+};

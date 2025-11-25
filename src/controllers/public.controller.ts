@@ -266,6 +266,15 @@ export async function getWebsiteFooterPublicDataHandler(req: Request, res: Respo
     });
   }
 
+  const branches = await findAllBranches();
+  const finalBranches = branches.map((branch) => ({
+    id: branch._id.toString(),
+    name: branch.name,
+    address: branch.address,
+    phone: branch.phone,
+    email: branch.email
+  }));
+
   const footerData = {
     businessName: businessInfo.name || "Royal Threading & Beauty",
     businessDescription: businessInfo.description || "Elevating your natural beauty with professional beauty services.",
@@ -283,7 +292,8 @@ export async function getWebsiteFooterPublicDataHandler(req: Request, res: Respo
       phone: businessInfo.phone,
       email: businessInfo.email,
       address: businessInfo.address
-    }
+    },
+    branches: finalBranches
   };
 
   return SendResponse.success({

@@ -191,6 +191,7 @@ export async function contactFormSubmitHandler(
   req: Request<Record<string, never>, Record<string, never>, ContactFormSubmitType>,
   res: Response
 ) {
+  logger.info("Contact form submission received.");
   const data = req.body;
   const contact = await createContact({
     name: data.name,

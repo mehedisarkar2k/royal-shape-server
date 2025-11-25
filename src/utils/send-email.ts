@@ -31,11 +31,6 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-transporter.verify((error, success) => {
-  if (error) console.error("SMTP ERROR:", error);
-  else console.log("SMTP Ready");
-});
-
 export const sendEmail = async (to: string, subject: string, html: string) => {
   const mailOptions = {
     from: process.env.SMTP_EMAIL || (config.get("smtp.email") as string),
@@ -43,6 +38,8 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
     subject,
     html
   };
+
+  console.log("Email options:", mailOptions);
 
   try {
     await transporter.sendMail(mailOptions);

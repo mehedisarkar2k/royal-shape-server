@@ -203,9 +203,9 @@ export async function contactFormSubmitHandler(
   try {
     await sendContactUsEmail(data);
   } catch (error) {
-    console.error("Error sending contact us email:", (error as Error).message);
+    logger.error("Error sending contact us email:", (error as Error).message);
   }
-  console.log("Contact form submitted:", contact);
+  // console.log("Contact form submitted:", contact);
   return SendResponse.success({
     res,
     message: "Submitted contact form successfully",

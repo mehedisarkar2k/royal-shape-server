@@ -18,11 +18,12 @@ import {
   getWebsitePricingPageDataHandler,
   getWebsiteServicesPageDataHandler,
   getWebsiteSingleServicePageDataHandler,
+  submitReviewPublicHandler,
   uploadJobDocumentHandler
 } from "../controllers";
 import { asyncWrapper } from "../utils";
 import { validateResource } from "../middleware";
-import { applyCareerPostSchema, contactFormSubmitSchema } from "../schemas";
+import { applyCareerPostSchema, contactFormSubmitSchema, submitReviewSchema } from "../schemas";
 import upload from "../utils/multer";
 
 const router = Router();
@@ -52,5 +53,6 @@ router.get("/website/branch/services-info/:branchId", asyncWrapper(getWebsiteBra
 router.get("/website/blog/categories-and-tags", asyncWrapper(getBlogCategoriesAndTagsHandler));
 router.get("/website/blog/all", asyncWrapper(getAllPublishedBlogsHandler));
 router.get("/website/blog/single/:blogId", asyncWrapper(getSinglePublishedBlogHandler));
+router.post("/submit-review", validateResource(submitReviewSchema), asyncWrapper(submitReviewPublicHandler));
 
 export default router;

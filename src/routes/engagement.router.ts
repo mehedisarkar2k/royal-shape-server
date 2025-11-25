@@ -3,6 +3,7 @@ import { requireUser, validateResource } from "../middleware";
 import { asyncWrapper } from "../utils";
 import { contactFormSubmitSchema, submitReviewSchema } from "../schemas";
 import {
+  askForReviewHandler,
   contactFormSubmitHandler,
   deleteContactSubmissionHandler,
   deleteReviewHandler,
@@ -38,5 +39,6 @@ router.delete(
   requireUser,
   asyncWrapper(deleteContactSubmissionHandler)
 );
+router.post("/ask-for-review", requireUser, asyncWrapper(askForReviewHandler));
 
 export default router;

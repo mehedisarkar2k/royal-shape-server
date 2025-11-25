@@ -34,8 +34,6 @@ if (!BREVO_API_KEY) {
 
 export const sendEmail = async (to: string, subject: string, html: string) => {
   try {
-    logger.info(`API Key: ${BREVO_API_KEY}`);
-
     const response = await axios.post(
       BREVO_API_URL,
       {

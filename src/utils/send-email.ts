@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import fs from "fs";
 import path from "path";
 import nodemailer from "nodemailer";
@@ -21,12 +23,17 @@ const loadTemplate = (templateName: string, data: unknown): string => {
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465, // secure:465 - non-secure:587
-  secure: true,
+  port: 587, // secure:465 - non-secure:587
+  secure: false,
   auth: {
     user: process.env.SMTP_EMAIL || (config.get("smtp.email") as string),
     pass: process.env.SMTP_PASSWORD || (config.get("smtp.password") as string)
   }
+});
+
+transporter.verify((error, success) => {
+  if (error) console.error("SMTP ERROR:", error);
+  else console.log("SMTP Ready");
 });
 
 export const sendEmail = async (to: string, subject: string, html: string) => {

@@ -489,6 +489,20 @@ export async function getWebsitePricingPageDataHandler(req: Request, res: Respon
     })
   );
 
+  const comboServices = await findAllCombos();
+  const finalComboServices = comboServices.map((combo) => ({
+    id: combo._id.toString(),
+    name: combo.name,
+    description: combo.description,
+    price: combo.price,
+    currency: combo.currency,
+    features: combo.comboItems,
+    mostPopular: false
+  }));
+  if (finalComboServices.length > 1) {
+    finalComboServices[1].mostPopular = true;
+  }
+
   return SendResponse.success({
     res,
     message: "Website pricing page data fetched successfully",
@@ -496,44 +510,7 @@ export async function getWebsitePricingPageDataHandler(req: Request, res: Respon
       individualServices: {
         serviceCategories: finalServicesCategories
       },
-      serviceCombos: [
-        // TODO: fetch from DB later
-        {
-          name: "Basic Package",
-          description: "Perfect for beginners who want to try our services",
-          price: 120,
-          mostPopular: false,
-          currency: "AUD",
-          features: ["Eyebrow Threading & Tinting", "Express Facial", "Classic Manicure"]
-        },
-        {
-          name: "Premium Package",
-          description: "Our most popular package for complete beauty experience",
-          price: 220,
-          currency: "AUD",
-          mostPopular: true,
-          features: [
-            "Full Face Threading & Tinting",
-            "Deluxe Facial Treatment",
-            "Eyelash Extensions",
-            "Henna Design (Small)"
-          ]
-        },
-        {
-          name: "Luxury Package",
-          description: "Ultimate beauty transformation for special occasions",
-          price: 350,
-          currency: "AUD",
-          mostPopular: false,
-          features: [
-            "Complete Threading & Tinting",
-            "Premium Facial & Massage",
-            "Professional Makeup",
-            "Eyelash Extensions & Lifting",
-            "Elaborate Henna Design"
-          ]
-        }
-      ]
+      serviceCombos: finalComboServices
     }
   });
 }
@@ -612,54 +589,16 @@ export async function getWebsiteAboutPageDataHandler(req: Request, res: Response
     };
   });
 
-  // TODO: fetch from DB later
-  const awards = [
-    {
-      id: "1",
-      title: "Best Salon Design",
-      issuer: "Beauty Excellence Awards",
-      year: "2024",
-      description: "Recognized for innovative salon design and customer experience excellence",
-      badgeImage: "/awards/badge-gold-design.png",
-      category: "Design"
-    },
-    {
-      id: "2",
-      title: "Excellence in Beauty Services",
-      issuer: "International Beauty Forum",
-      year: "2024",
-      description: "Outstanding achievement in beauty treatments and professional services",
-      badgeImage: "/awards/badge-silver-services.png",
-      category: "Services"
-    },
-    {
-      id: "3",
-      title: "Premium Brand Recognition",
-      issuer: "Global Beauty Excellence",
-      year: "2023",
-      description: "Leading contributor in luxury beauty and wellness experiences",
-      badgeImage: "/awards/badge-platinum-brand.png",
-      category: "Brand"
-    },
-    {
-      id: "4",
-      title: "Creative Innovation Award",
-      issuer: "Beauty Summit Global",
-      year: "2023",
-      description: "Innovation in beauty treatments and creative styling solutions",
-      badgeImage: "/awards/badge-bronze-innovation.png",
-      category: "Innovation"
-    },
-    {
-      id: "5",
-      title: "Customer Choice Award",
-      issuer: "Beauty Leaders Conference",
-      year: "2024",
-      description: "Excellence in customer satisfaction and service quality",
-      badgeImage: "/awards/badge-customer-choice.png",
-      category: "Excellence"
-    }
-  ];
+  const awards = await findAllAwardsPaginated(1, 10);
+  const finalAwards = awards.map((award) => ({
+    id: award._id.toString(),
+    title: award.title,
+    issuer: award.issuer,
+    year: award.year,
+    description: award.description,
+    badgeImage: award.badgeImage,
+    category: award.category
+  }));
 
   return SendResponse.success({
     res,
@@ -706,7 +645,7 @@ export async function getWebsiteAboutPageDataHandler(req: Request, res: Response
       },
       branches: finalBranches,
       experts,
-      awards
+      awards: finalAwards
     }
   });
 }

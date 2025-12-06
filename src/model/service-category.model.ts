@@ -28,6 +28,9 @@ export class ServiceCategory {
 
   @Prop({ required: true, type: String })
   thumbnail: string;
+
+  @Prop({ required: false, type: Number, default: 0 })
+  displayOrder?: number;
 }
 
 export const ServiceCategoryModel = getModelForClass(ServiceCategory);

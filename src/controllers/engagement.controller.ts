@@ -37,6 +37,7 @@ export async function submitReviewHandler(
   const newReview = await ReviewModel.create({
     customerName: data.customerName,
     customerEmail: data.customerEmail,
+    customerImage: data.customerImage || null,
     rating: data.rating,
     comment: data.comment,
     showInWebsite: false

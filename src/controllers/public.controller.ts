@@ -739,8 +739,8 @@ export async function getWebsiteCareersPageDataHandler(req: Request, res: Respon
       numberSections: {
         // TODO: change later to careers specific data
         yearOfExcellence: 10,
-        teamMembers: 50,
-        happyClients: 10000,
+        teamMembers: 12,
+        happyClients: 1000,
         branches: 5
       },
       openPositions: finalOpenPositions,

@@ -27,7 +27,8 @@ const restrictiveCorsOptions: CorsOptions = {
     "http://localhost:3003",
     "http://localhost:3004",
     "https://royalthreadingandbeauty.vercel.app",
-    "https://client.stickyclass.com"
+    "https://client.stickyclass.com",
+    "https://royalthreadingandbeauty.com.au"
   ],
   credentials: true
 };

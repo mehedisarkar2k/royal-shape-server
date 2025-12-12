@@ -910,19 +910,7 @@ export async function getAllBookingsHandler(req: Request, res: Response) {
     bookings.map(async (booking) => {
       const customerInfo = await findCustomerById(booking.customerId);
       const branchInfo = await findBranchById(booking.branchId);
-      if (!customerInfo || !branchInfo) {
-        return SendErrorResponse.internalServer({
-          res,
-          ...buildErrorPayload(
-            req.originalUrl,
-            functionName,
-            req.method,
-            "Failed to retrieve booking details",
-            UNEXPECTED_ERROR,
-            "Failed to retrieve booking details"
-          )
-        });
-      }
+
       if (booking.serviceType === BookingServiceType.COMBO && booking.comboId) {
         const combo = await findComboById(booking.comboId!);
         if (!combo) {
@@ -943,12 +931,12 @@ export async function getAllBookingsHandler(req: Request, res: Response) {
           shortId: booking.shortId,
           bookingType: booking.serviceType,
           branch: {
-            id: branchInfo?._id.toString(),
-            name: branchInfo.name
+            id: branchInfo ? branchInfo._id.toString() : "N/A",
+            name: branchInfo ? branchInfo.name : "N/A"
           },
           customer: {
-            id: customerInfo._id.toString(),
-            name: `${customerInfo.firstName} ${customerInfo.lastName}`.trim()
+            id: customerInfo ? customerInfo._id.toString() : "N/A",
+            name: customerInfo ? `${customerInfo.firstName} ${customerInfo.lastName}`.trim() : "N/A"
           },
           services: [
             {
@@ -969,12 +957,12 @@ export async function getAllBookingsHandler(req: Request, res: Response) {
         shortId: booking.shortId,
         bookingType: booking.serviceType,
         branch: {
-          id: branchInfo?._id.toString(),
-          name: branchInfo.name
+          id: branchInfo ? branchInfo._id.toString() : "N/A",
+          name: branchInfo ? branchInfo.name : "N/A"
         },
         customer: {
-          id: customerInfo._id.toString(),
-          name: `${customerInfo.firstName} ${customerInfo.lastName}`.trim()
+          id: customerInfo ? customerInfo._id.toString() : "N/A",
+          name: customerInfo ? `${customerInfo.firstName} ${customerInfo.lastName}`.trim() : "N/A"
         },
         services: serviceInfo.map((service) => ({
           id: service._id.toString(),

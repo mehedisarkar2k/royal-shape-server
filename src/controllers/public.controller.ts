@@ -553,7 +553,15 @@ export async function getWebsiteSingleServicePageDataHandler(req: Request, res: 
 }
 
 export async function getWebsitePricingPageDataHandler(req: Request, res: Response) {
-  // const functionName = getWebsitePricingPageDataHandler.name;
+  const cacheKey = `website_pricing_page_data`;
+  const cachedData = appCache.get(cacheKey);
+  if (cachedData) {
+    return SendResponse.success({
+      res,
+      message: "Website pricing page data fetched successfully (cached)",
+      data: cachedData
+    });
+  }
 
   const serviceCategories = await findAllServiceCategories();
   const finalServicesCategories = await Promise.all(
@@ -589,15 +597,19 @@ export async function getWebsitePricingPageDataHandler(req: Request, res: Respon
     finalComboServices[1].mostPopular = true;
   }
 
+  const responseData = {
+    individualServices: {
+      serviceCategories: finalServicesCategories
+    },
+    serviceCombos: finalComboServices
+  };
+
+  appCache.set(cacheKey, responseData);
+
   return SendResponse.success({
     res,
     message: "Website pricing page data fetched successfully",
-    data: {
-      individualServices: {
-        serviceCategories: finalServicesCategories
-      },
-      serviceCombos: finalComboServices
-    }
+    data: responseData
   });
 }
 

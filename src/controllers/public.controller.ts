@@ -162,7 +162,9 @@ export async function getWebsiteHomePublicDataHandler(req: Request, res: Respons
       phone: branch.phone,
       email: branch.email,
       rating: branch.rating,
-      openingHours: openingHourStr
+      openingHours: openingHourStr,
+      latitude: branch.latitude,
+      longitude: branch.longitude
     };
   });
 
@@ -317,7 +319,7 @@ export async function getWebsiteFooterPublicDataHandler(req: Request, res: Respo
       youtube: socialInfo.youtube || "",
       tiktok: socialInfo.tiktok || ""
     },
-    copyRightMsg: businessInfo.copyRightMsg || "© 2025 Royal Threading & Beauty. All rights reserved.",
+    copyRightMsg: (businessInfo.copyRightMsg || `© ${new Date().getFullYear()} Royal Threading & Beauty. All rights reserved.`).replace(/20\d{2}/, new Date().getFullYear().toString()),
     contact: {
       phone: businessInfo.phone,
       email: businessInfo.email,

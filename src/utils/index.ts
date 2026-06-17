@@ -8,3 +8,4 @@ export { default as multerUpload } from "./multer";
 export * from "./send-email";
 export * from "./datetime-helper";
 export * from "./slot-calculator";
+export * from "./cache";

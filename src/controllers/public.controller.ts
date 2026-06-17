@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
-import { SendErrorResponse, SendResponse } from "../utils";
+import { appCache, SendErrorResponse, SendResponse } from "../utils";
 import { BlogModel, BusinessInfoModel, PromotionModel, WeeklySchedule } from "../model";
 import { ApplicationServices, BlogStatus, DATA_NOT_FOUND, INPUT_MISSING, UNEXPECTED_ERROR } from "../constants";
 import {
@@ -77,6 +77,17 @@ function formatWeeklySchedule(schedule: WeeklySchedule): string {
 
 export async function getWebsiteHomePublicDataHandler(req: Request, res: Response) {
   const functionName = getWebsiteHomePublicDataHandler.name;
+
+  const cacheKey = "website_home_data";
+  const cachedData = appCache.get(cacheKey);
+  if (cachedData) {
+    return SendResponse.success({
+      res,
+      message: "Website home public data fetched successfully (from cache)",
+      data: cachedData
+    });
+  }
+
   const businessInfo = await BusinessInfoModel.findOne();
   if (!businessInfo) {
     return SendErrorResponse.notFound({
@@ -198,39 +209,58 @@ export async function getWebsiteHomePublicDataHandler(req: Request, res: Respons
     category: award.category
   }));
 
+  const comboServices = await findAllCombos();
+  const finalComboServices = comboServices.map((combo) => ({
+    id: combo._id.toString(),
+    name: combo.name,
+    description: combo.description,
+    price: combo.price,
+    currency: combo.currency,
+    features: combo.comboItems,
+    mostPopular: false
+  }));
+  if (finalComboServices.length > 1) {
+    finalComboServices[1].mostPopular = true;
+  }
+
+  const responseData = {
+    hero: {
+      chipText: homeData.heroSection.chipText || "Experience Luxury",
+      title: homeData.heroSection.title || "Elevate Your Beauty",
+      subtitle:
+        homeData.heroSection.subtitle ||
+        "Experience premium beauty services delivered by our expert team for a transformative look",
+      image: homeData.heroSection.image,
+      ctaButton1: homeData.heroSection.ctaButton1,
+      ctaButton2: homeData.heroSection.ctaButton2
+    },
+    promotions: promotions.map((promo) => ({
+      id: promo._id.toString(),
+      title: promo.title,
+      titleColor: promo.titleColor,
+      description: promo.description,
+      descriptionColor: promo.descriptionColor,
+      image: promo.bannerImage,
+      buttonText: promo.buttonText,
+      buttonBgColor: promo.buttonBgColor,
+      buttonTextColor: promo.buttonTextColor,
+      buttonLink: promo.buttonLink
+    })),
+    combos: finalComboServices,
+    servicesCategories: services,
+    awards: finalAwards,
+    experts,
+    branches: finalBranches,
+    showcase,
+    testimonials
+  };
+
+  appCache.set(cacheKey, responseData);
+
   return SendResponse.success({
     res,
     message: "Website home public data fetched successfully",
-    data: {
-      hero: {
-        chipText: homeData.heroSection.chipText || "Experience Luxury",
-        title: homeData.heroSection.title || "Elevate Your Beauty",
-        subtitle:
-          homeData.heroSection.subtitle ||
-          "Experience premium beauty services delivered by our expert team for a transformative look",
-        image: homeData.heroSection.image,
-        ctaButton1: homeData.heroSection.ctaButton1,
-        ctaButton2: homeData.heroSection.ctaButton2
-      },
-      promotions: promotions.map((promo) => ({
-        id: promo._id.toString(),
-        title: promo.title,
-        titleColor: promo.titleColor,
-        description: promo.description,
-        descriptionColor: promo.descriptionColor,
-        image: promo.bannerImage,
-        buttonText: promo.buttonText,
-        buttonBgColor: promo.buttonBgColor,
-        buttonTextColor: promo.buttonTextColor,
-        buttonLink: promo.buttonLink
-      })),
-      servicesCategories: services,
-      awards: finalAwards,
-      experts,
-      branches: finalBranches,
-      showcase,
-      testimonials
-    }
+    data: responseData
   });
 }
 

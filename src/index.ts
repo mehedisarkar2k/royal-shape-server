@@ -16,8 +16,8 @@ const start = async () => {
       logger.info(`Server is up & running on http://localhost:${port}`);
     });
   } catch (error) {
-    // console.log(error);
-    logger.error("An error occurred while connecting to the database or firebase", (error as Error).message);
+    console.error("Server start error:", error);
+    logger.error("An error occurred while connecting to the database or firebase");
   }
 };
 

@@ -14,7 +14,8 @@ import {
   findAllServiceCategoriesOfBranch,
   findBranchById,
   findCareerPostById,
-  findServicesByCategoryId
+  findServicesByCategoryId,
+  findServiceCategoryById
 } from "../services";
 import { ReviewModel } from "../model/review.model";
 import { ApplyCareerPostType, SubmitReviewInput } from "../schemas";
@@ -338,13 +339,34 @@ export async function getWebsiteFooterPublicDataHandler(req: Request, res: Respo
 export async function getWebsiteServicesPageDataHandler(req: Request, res: Response) {
   // const functionName = getWebsiteServicesPageDataHandler.name;
 
+  const cacheKey = "website_services_page_data";
+  const cachedData = appCache.get(cacheKey);
+  if (cachedData) {
+    return SendResponse.success({
+      res,
+      message: "Website services page public data fetched successfully (from cache)",
+      data: cachedData
+    });
+  }
+
   const serviceCategories = await findAllServiceCategories();
-  const finalServicesCategories = (serviceCategories || []).map((category) => ({
-    id: category._id.toString(),
-    name: category.name,
-    description: category.description,
-    image: category.thumbnail
-  }));
+  const finalServicesCategories = await Promise.all(
+    (serviceCategories || []).map(async (category) => {
+      const services = await findServicesByCategoryId(category._id.toString());
+      return {
+        id: category._id.toString(),
+        name: category.name,
+        description: category.description,
+        image: category.thumbnail,
+        prices: services.map((service) => ({
+          name: service.name,
+          price: `$${service.price}`,
+          duration: service.duration,
+          description: service.description
+        }))
+      };
+    })
+  );
 
   const comboServices = await findAllCombos();
   const finalComboServices = comboServices.map((combo) => ({
@@ -360,19 +382,33 @@ export async function getWebsiteServicesPageDataHandler(req: Request, res: Respo
     finalComboServices[1].mostPopular = true;
   }
 
+  const responseData = {
+    services: finalServicesCategories,
+    combos: finalComboServices
+  };
+
+  appCache.set(cacheKey, responseData);
+
   return SendResponse.success({
     res,
     message: "Website services page public data fetched successfully",
-    data: {
-      services: finalServicesCategories,
-      combos: finalComboServices
-    }
+    data: responseData
   });
 }
 
 export async function getWebsiteSingleServicePageDataHandler(req: Request, res: Response) {
   const functionName = getWebsiteSingleServicePageDataHandler.name;
   const { serviceId } = req.params;
+
+  const cacheKey = `website_single_service_data_${serviceId}`;
+  const cachedData = appCache.get(cacheKey);
+  if (cachedData) {
+    return SendResponse.success({
+      res,
+      message: "Website single service page public data fetched successfully (from cache)",
+      data: cachedData
+    });
+  }
 
   const businessInfo = await BusinessInfoModel.findOne();
   if (!businessInfo) {
@@ -419,19 +455,33 @@ export async function getWebsiteSingleServicePageDataHandler(req: Request, res: 
     });
   }
 
-  const serviceData = services.find((s) => s.serviceId === serviceId);
+  let serviceData: any = services.find((s) => s.serviceId === serviceId);
   if (!serviceData) {
-    return SendErrorResponse.notFound({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        `No service found with the ID: ${serviceId}`,
-        DATA_NOT_FOUND,
-        "This website may not have been set up yet. Sorry for the inconvenience. Please contact the site administrator."
-      )
-    });
+    // Fallback to ServiceCategory if specific single-service details are missing
+    const category = await findServiceCategoryById(serviceId);
+    if (!category) {
+      return SendErrorResponse.notFound({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          `No service found with the ID: ${serviceId}`,
+          DATA_NOT_FOUND,
+          "This service category does not exist."
+        )
+      });
+    }
+    serviceData = {
+      serviceId: category._id.toString(),
+      serviceName: category.name,
+      heroSection: {
+        title: category.name,
+        subtitle: category.description,
+        image: category.thumbnail || "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=1920&q=80",
+      },
+      bodySections: []
+    } as any;
   }
 
   const serviceItems = await findServicesByCategoryId(serviceId);
@@ -480,21 +530,25 @@ export async function getWebsiteSingleServicePageDataHandler(req: Request, res: 
   //   comment: review.comment
   // }));
 
+  const responseData = {
+    service: {
+      id: serviceData.serviceId,
+      name: serviceData.serviceName,
+      heroSection: serviceData.heroSection,
+      bodySections: serviceData.bodySections,
+      serviceItemsWeProvide: serviceItemsFormatted,
+      experts: experts,
+      branches: finalBranches
+      // testimonials: testimonials
+    }
+  };
+
+  appCache.set(cacheKey, responseData);
+
   return SendResponse.success({
     res,
     message: "Website single service page public data fetched successfully",
-    data: {
-      service: {
-        id: serviceData.serviceId,
-        name: serviceData.serviceName,
-        heroSection: serviceData.heroSection,
-        bodySections: serviceData.bodySections,
-        serviceItemsWeProvide: serviceItemsFormatted,
-        experts: experts,
-        branches: finalBranches
-        // testimonials: testimonials
-      }
-    }
+    data: responseData
   });
 }
 

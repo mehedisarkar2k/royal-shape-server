@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireUser, validateResource } from "../middleware";
+import { requireUser, requireRole, validateResource } from "../middleware";
 import { asyncWrapper } from "../utils";
 import { createBlogSchema } from "../schemas";
 import {
@@ -15,12 +15,24 @@ import {
 
 const router = Router();
 
-router.post("/create", requireUser, validateResource(createBlogSchema), asyncWrapper(createBlogHandler));
-router.get("/all", requireUser, asyncWrapper(getAllBlogsHandler));
-router.get("/single/:blogId", requireUser, asyncWrapper(getSingleBlogHandler));
-router.put("/edit/:blogId", validateResource(createBlogSchema), requireUser, asyncWrapper(editBlogHandler));
-router.delete("/delete/:blogId", requireUser, asyncWrapper(deleteBlogHandler));
-router.put("/toggle-status/:blogId", requireUser, asyncWrapper(toggleBlogStatusHandler));
+router.post(
+  "/create",
+  requireUser,
+  requireRole("admin"),
+  validateResource(createBlogSchema),
+  asyncWrapper(createBlogHandler)
+);
+router.get("/all", requireUser, requireRole("admin"), asyncWrapper(getAllBlogsHandler));
+router.get("/single/:blogId", requireUser, requireRole("admin"), asyncWrapper(getSingleBlogHandler));
+router.put(
+  "/edit/:blogId",
+  validateResource(createBlogSchema),
+  requireUser,
+  requireRole("admin"),
+  asyncWrapper(editBlogHandler)
+);
+router.delete("/delete/:blogId", requireUser, requireRole("admin"), asyncWrapper(deleteBlogHandler));
+router.put("/toggle-status/:blogId", requireUser, requireRole("admin"), asyncWrapper(toggleBlogStatusHandler));
 router.get("/public/all", asyncWrapper(getAllPublicBlogsHandler));
 router.get("/public/single/:blogId", asyncWrapper(getSinglePublicBlogHandler));
 

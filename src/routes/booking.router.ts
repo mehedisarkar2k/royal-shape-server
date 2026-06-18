@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireUser, validateResource } from "../middleware";
+import { requireUser, requireRole, validateResource } from "../middleware";
 import {
   bulkMarkBookingsAsCompletedHandler,
   cancelBookingHandler,
@@ -25,6 +25,7 @@ router.post("/public/request", validateResource(requestBookingSchema), asyncWrap
 router.post(
   "/manual-create",
   requireUser,
+  requireRole("admin"),
   validateResource(requestBookingSchema),
   asyncWrapper(manualCreateBookingHandler)
 );

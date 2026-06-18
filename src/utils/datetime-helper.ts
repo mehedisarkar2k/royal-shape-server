@@ -1,6 +1,10 @@
 export function isCurrentTimeGreater(givenTime: string, checkIn: Date): boolean {
-  const [time, meridian] = givenTime.split(" ");
-  const [givenHours, givenMinutes] = time.split(":").map(Number);
+  const match = givenTime.trim().match(/^(0?[1-9]|1[0-2]):([0-5][0-9])\s?(AM|PM|am|pm)?$/);
+  if (!match) return false;
+
+  const givenHours = parseInt(match[1], 10);
+  const givenMinutes = parseInt(match[2], 10);
+  const meridian = match[3] ? match[3].toUpperCase() : "AM";
 
   // * convert given time to 24-hour format
   let givenHours24 = meridian === "PM" && givenHours !== 12 ? givenHours + 12 : givenHours;
@@ -13,8 +17,12 @@ export function isCurrentTimeGreater(givenTime: string, checkIn: Date): boolean 
 }
 
 export function isCurrentTimeLesser(givenTime: string, currentDateTime: Date): boolean {
-  const [time, meridian] = givenTime.split(" ");
-  const [givenHours, givenMinutes] = time.split(":").map(Number);
+  const match = givenTime.trim().match(/^(0?[1-9]|1[0-2]):([0-5][0-9])\s?(AM|PM|am|pm)?$/);
+  if (!match) return false;
+
+  const givenHours = parseInt(match[1], 10);
+  const givenMinutes = parseInt(match[2], 10);
+  const meridian = match[3] ? match[3].toUpperCase() : "AM";
 
   // * convert given time to 24-hour format
   let givenHours24 = meridian === "PM" && givenHours !== 12 ? givenHours + 12 : givenHours;
@@ -72,14 +80,18 @@ export function parseDateTimeFromDateAndTimeStr(dateStr: string, timeStr: string
 
 export function getTimeDifferenceInMinutes(start: string, end: string): number {
   const parseTime = (timeStr: string): number => {
-    const [time, modifier] = timeStr.trim().split(" ");
-    // eslint-disable-next-line prefer-const
-    let [hours, minutes] = time.split(":").map(Number);
+    // robust splitting handling spaces optionally before AM/PM
+    const match = timeStr.trim().match(/^(0?[1-9]|1[0-2]):([0-5][0-9])\s?(AM|PM|am|pm)?$/);
+    if (!match) throw new Error(`Invalid time format: ${timeStr}`);
 
-    if (modifier.toUpperCase() === "PM" && hours !== 12) {
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const modifier = match[3] ? match[3].toUpperCase() : "AM"; // default to AM if missing
+
+    if (modifier === "PM" && hours !== 12) {
       hours += 12;
     }
-    if (modifier.toUpperCase() === "AM" && hours === 12) {
+    if (modifier === "AM" && hours === 12) {
       hours = 0;
     }
 
@@ -100,8 +112,11 @@ export function getTimeDifferenceInMinutes(start: string, end: string): number {
 export function calculateTimeDurationInMinutes(startTime: string, endTime: string): number {
   // Parse time strings in format "h:mm a"
   const parseTime = (timeStr: string): number => {
-    const [time, period] = timeStr.split(" ");
-    const [hours, minutes] = time.split(":").map(Number);
+    const match = timeStr.trim().match(/^(0?[1-9]|1[0-2]):([0-5][0-9])\s?(AM|PM|am|pm)?$/);
+    if (!match) throw new Error(`Invalid time format: ${timeStr}`);
+    const hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const period = match[3] ? match[3].toUpperCase() : "AM";
     let totalMinutes = minutes;
 
     if (period === "PM" && hours !== 12) {

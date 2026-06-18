@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireUser, validateResource } from "../middleware";
+import { requireUser, requireRole, validateResource } from "../middleware";
 import { createBranchSchema } from "../schemas";
 import {
   createBranchHandler,
@@ -12,10 +12,22 @@ import { asyncWrapper } from "../utils";
 
 const router = Router();
 
-router.post("/create", requireUser, validateResource(createBranchSchema), asyncWrapper(createBranchHandler));
-router.get("/all", requireUser, asyncWrapper(getAllBranchesHandler));
-router.get("/single/:id", requireUser, asyncWrapper(getBranchByIdHandler));
-router.put("/update/:id", requireUser, validateResource(createBranchSchema), asyncWrapper(updateBranchHandler));
-router.delete("/delete/:id", requireUser, asyncWrapper(deleteBranchHandler));
+router.post(
+  "/create",
+  requireUser,
+  requireRole("admin"),
+  validateResource(createBranchSchema),
+  asyncWrapper(createBranchHandler)
+);
+router.get("/all", requireUser, requireRole("admin"), asyncWrapper(getAllBranchesHandler));
+router.get("/single/:id", requireUser, requireRole("admin"), asyncWrapper(getBranchByIdHandler));
+router.put(
+  "/update/:id",
+  requireUser,
+  requireRole("admin"),
+  validateResource(createBranchSchema),
+  asyncWrapper(updateBranchHandler)
+);
+router.delete("/delete/:id", requireUser, requireRole("admin"), asyncWrapper(deleteBranchHandler));
 
 export default router;

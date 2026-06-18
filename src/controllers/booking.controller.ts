@@ -200,7 +200,7 @@ export async function requestBookingHandler(
   // customer made this request; absent means a guest, which admins need to filter on.
   const isGuestBooking = !res.locals.user;
 
-  if (!services && !combo) {
+  if ((!services || services.length === 0) && !combo) {
     return SendErrorResponse.badRequest({
       res,
       message: "At least one of services or combo must be provided",
@@ -598,7 +598,7 @@ export async function manualCreateBookingHandler(
   const functionName = manualCreateBookingHandler.name;
   const { branchId, services, combo, date, startTime, endTime, customerInfo } = req.body;
 
-  if (!services && !combo) {
+  if ((!services || services.length === 0) && !combo) {
     return SendErrorResponse.badRequest({
       res,
       ...buildErrorPayload(
@@ -744,8 +744,8 @@ export async function manualCreateBookingHandler(
     shortId: await generateUniqueShortBookingId(),
     branchId,
     branchName: branch.name,
-    serviceIds: serviceIdArray,
-    serviceType: serviceIdArray.length > 0 ? BookingServiceType.SPECIFIC_SERVICE : BookingServiceType.COMBO,
+    serviceIds: comboId ? null : serviceIdArray,
+    serviceType: comboId ? BookingServiceType.COMBO : BookingServiceType.SPECIFIC_SERVICE,
     comboId,
     customerId: customer._id.toString(),
     bookingDate, // maybe changed
@@ -1104,14 +1104,6 @@ export async function getAllBookingsHandler(req: Request, res: Response) {
   const limit = parseInt((req.query.limit as string) || "10", 10);
 
   const cacheKey = `bookings_all_page_${page}_limit_${limit}`;
-  const cachedData = appCache.get(cacheKey);
-  if (cachedData) {
-    return SendResponse.success({
-      res,
-      message: "All bookings retrieved successfully (cached)",
-      data: cachedData
-    });
-  }
 
   const bookings = await findAllBookingsPaginated(page, limit);
   const totalBookings = await countAllBookings();
@@ -1125,19 +1117,6 @@ export async function getAllBookingsHandler(req: Request, res: Response) {
 
       if (booking.serviceType === BookingServiceType.COMBO && booking.comboId) {
         const combo = await findComboById(booking.comboId!);
-        if (!combo) {
-          return SendErrorResponse.internalServer({
-            res,
-            ...buildErrorPayload(
-              req.originalUrl,
-              functionName,
-              req.method,
-              "Failed to retrieve combo details",
-              UNEXPECTED_ERROR,
-              "Failed to retrieve combo details"
-            )
-          });
-        }
         return {
           id: booking._id.toString(),
           shortId: booking.shortId,
@@ -1152,8 +1131,8 @@ export async function getAllBookingsHandler(req: Request, res: Response) {
           },
           services: [
             {
-              id: combo._id.toString(),
-              name: combo.name
+              id: combo ? combo._id.toString() : booking.comboId,
+              name: combo ? combo.name : "Deleted Combo"
             }
           ],
           price: booking.totalPrice,
@@ -1200,7 +1179,7 @@ export async function getAllBookingsHandler(req: Request, res: Response) {
     hasNext
   };
 
-  appCache.set(cacheKey, responseData);
+  // appCache.set(cacheKey, responseData);
 
   return SendResponse.success({
     res,
@@ -1213,14 +1192,6 @@ export async function getBookingShortStatsHandler(req: Request, res: Response) {
   // const functionName = getTopSectionBookingStatsHandler.name;
 
   const cacheKey = "booking_short_stats";
-  const cachedData = appCache.get(cacheKey);
-  if (cachedData) {
-    return SendResponse.success({
-      res,
-      message: "Booking stats retrieved successfully (cached)",
-      data: cachedData
-    });
-  }
 
   const statsRes = await findBookingStats();
 
@@ -1237,7 +1208,7 @@ export async function getBookingShortStatsHandler(req: Request, res: Response) {
     }
   };
 
-  appCache.set(cacheKey, responseData);
+  // appCache.set(cacheKey, responseData);
 
   return SendResponse.success({
     res,
@@ -1289,14 +1260,6 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
   const { bookingId } = req.params;
 
   const cacheKey = `booking_single_${bookingId}`;
-  const cachedData = appCache.get(cacheKey);
-  if (cachedData) {
-    return SendResponse.success({
-      res,
-      message: "Booking retrieved successfully (cached)",
-      data: cachedData
-    });
-  }
 
   const booking = await findBookingById(bookingId);
   if (!booking) {
@@ -1332,19 +1295,6 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
 
   if (booking.serviceType === BookingServiceType.COMBO && booking.comboId) {
     const combo = await findComboById(booking.comboId);
-    if (!combo) {
-      return SendErrorResponse.internalServer({
-        res,
-        ...buildErrorPayload(
-          req.originalUrl,
-          functionName,
-          req.method,
-          "Failed to retrieve combo details",
-          UNEXPECTED_ERROR,
-          "Failed to retrieve combo details"
-        )
-      });
-    }
 
     const formattedBooking = {
       id: booking._id.toString(),
@@ -1367,8 +1317,8 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
       },
       services: [
         {
-          id: combo._id.toString(),
-          name: combo.name
+          id: combo ? combo._id.toString() : booking.comboId,
+          name: combo ? combo.name : "Deleted Combo"
         }
       ],
       price: booking.totalPrice,
@@ -1380,7 +1330,7 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
       receiptKey: booking.receiptKey ?? null
     };
 
-    appCache.set(cacheKey, { booking: formattedBooking });
+    // appCache.set(cacheKey, { booking: formattedBooking });
 
     return SendResponse.success({
       res,
@@ -1452,7 +1402,7 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
     receiptKey: booking.receiptKey ?? null
   };
 
-  appCache.set(cacheKey, { booking: formattedBooking });
+  // appCache.set(cacheKey, { booking: formattedBooking });
 
   return SendResponse.success({
     res,
@@ -1468,14 +1418,6 @@ export async function getPublicSingleBookingHandler(req: Request, res: Response)
   const { bookingId } = req.params;
 
   const cacheKey = `booking_public_single_${bookingId}`;
-  const cachedData = appCache.get(cacheKey);
-  if (cachedData) {
-    return SendResponse.success({
-      res,
-      message: "Booking retrieved successfully (cached)",
-      data: cachedData
-    });
-  }
 
   const booking = await findBookingById(bookingId);
   if (!booking) {
@@ -1511,19 +1453,6 @@ export async function getPublicSingleBookingHandler(req: Request, res: Response)
     }
 
     const combo = await findComboById(booking.comboId);
-    if (!combo) {
-      return SendErrorResponse.internalServer({
-        res,
-        ...buildErrorPayload(
-          req.originalUrl,
-          functionName,
-          req.method,
-          "Combo not found while retrieving booking details",
-          DATA_NOT_FOUND,
-          "Combo not found while retrieving booking details"
-        )
-      });
-    }
 
     const formattedBooking = {
       id: booking._id.toString(),
@@ -1535,7 +1464,7 @@ export async function getPublicSingleBookingHandler(req: Request, res: Response)
       services: [
         {
           id: booking.comboId,
-          name: combo.name
+          name: combo ? combo.name : "Deleted Combo"
         }
       ],
       price: booking.totalPrice,
@@ -1546,7 +1475,7 @@ export async function getPublicSingleBookingHandler(req: Request, res: Response)
       receiptKey: booking.receiptKey ?? null
     };
 
-    appCache.set(cacheKey, { booking: formattedBooking });
+    // appCache.set(cacheKey, { booking: formattedBooking });
 
     return SendResponse.success({
       res,
@@ -1610,7 +1539,7 @@ export async function getPublicSingleBookingHandler(req: Request, res: Response)
     receiptKey: booking.receiptKey ?? null
   };
 
-  appCache.set(cacheKey, { booking: formattedBooking });
+  // appCache.set(cacheKey, { booking: formattedBooking });
 
   return SendResponse.success({
     res,
@@ -1629,7 +1558,7 @@ export async function updateBookingHandler(
   const { bookingId } = req.params;
   const data = req.body;
 
-  if (!data.services && !data.combo) {
+  if ((!data.services || data.services.length === 0) && !data.combo) {
     return SendErrorResponse.badRequest({
       res,
       ...buildErrorPayload(
@@ -1639,20 +1568,6 @@ export async function updateBookingHandler(
         "At least one service or combo is required",
         BAD_REQUEST,
         "At least one service or combo is required"
-      )
-    });
-  }
-
-  if (data.services?.length === 0) {
-    return SendErrorResponse.badRequest({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "At least one service is required",
-        BAD_REQUEST,
-        "At least one service is required"
       )
     });
   }
@@ -1758,12 +1673,14 @@ export async function updateBookingHandler(
 
   booking.branchId = data.branchId || booking.branchId;
 
-  if (data.services) {
-    booking.serviceIds = data.services;
-  }
-
   if (data.combo) {
     booking.comboId = data.combo;
+    booking.serviceIds = null;
+    booking.serviceType = BookingServiceType.COMBO;
+  } else if (data.services && data.services.length > 0) {
+    booking.serviceIds = data.services;
+    booking.comboId = null;
+    booking.serviceType = BookingServiceType.SPECIFIC_SERVICE;
   }
 
   const bookingDate = parseDateTimeFromDateAndTimeStr(data.date, data.startTime);
@@ -1807,16 +1724,7 @@ export async function updateBookingHandler(
     }
     customer.firstName = data.customerInfo.firstName || customer.firstName;
     customer.lastName = data.customerInfo.lastName || customer.lastName;
-    if (data.customerInfo.email) {
-      customer.email = data.customerInfo.email;
-    }
-    if (data.customerInfo.phone) {
-      customer.phone = {
-        countryCode: data.customerInfo.phone.countryCode || customer.phone?.countryCode || '',
-        number: data.customerInfo.phone.number || customer.phone?.number || '',
-        e164: `+${data.customerInfo.phone.countryCode || customer.phone?.countryCode || ''}${data.customerInfo.phone.number || customer.phone?.number || ''}`
-      };
-    }
+    // Email and phone are ignored in booking edits per requirements
     customer.description = data.customerInfo.specialNotes || customer.description || "";
     await customer.save();
   }

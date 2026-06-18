@@ -9,7 +9,7 @@ export async function findAllServiceCategories() {
 }
 
 export async function findAllServiceCategoriesOfBranch(branchId: string) {
-  return ServiceCategoryModel.find({ "branches.branchId": branchId }).sort({ displayOrder: 1 });
+  return ServiceCategoryModel.find({ "branches.branchId": branchId, status: "active" }).sort({ displayOrder: 1 });
 }
 
 export async function findAllServiceCategoriesPaginated(page: number, limit: number) {
@@ -29,6 +29,14 @@ export async function createService(data: Service) {
 
 export async function findServicesByCategoryId(categoryId: string) {
   return ServiceModel.find({ categoryId });
+}
+
+export async function findActiveServicesByCategoryIdAndBranch(categoryId: string, branchId: string) {
+  return ServiceModel.find({
+    categoryId,
+    status: "active",
+    "branches.branchId": branchId
+  });
 }
 
 export async function findServicesByIds(serviceIds: string[]) {

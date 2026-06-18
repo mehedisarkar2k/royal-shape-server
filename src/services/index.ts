@@ -10,3 +10,4 @@ export * from "./employee.service";
 export * from "./career.service";
 export * from "./combo.service";
 export * from "./award.service";
+export * from "./cron.service";

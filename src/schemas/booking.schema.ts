@@ -4,7 +4,7 @@ import { BookingStatus } from "../constants";
 export const requestBookingSchema = object({
   body: object({
     branchId: string().min(1, "Branch ID is required"),
-    services: array(string().min(1)).min(1, "At least one service id is required").optional().nullable(),
+    services: array(string().min(1)).optional().nullable(),
     combo: string().min(1).optional().nullable(),
     date: string().min(1, "Date is required"),
     startTime: string().min(1, "Start time is required"),
@@ -41,7 +41,7 @@ export type BulkMarkBookingsType = TypeOf<typeof bulkMarkBookingsSchema>["body"]
 export const updateBookingSchema = object({
   body: object({
     branchId: string().min(1, "Branch ID is required"),
-    services: array(string().min(1)).min(1, "At least one service id is required").optional().nullable(),
+    services: array(string().min(1)).optional().nullable(),
     combo: string().min(1).optional().nullable(),
     date: string().min(1, "Date is required"),
     startTime: string().min(1, "Start time is required"),

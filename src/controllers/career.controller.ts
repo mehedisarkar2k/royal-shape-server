@@ -5,11 +5,14 @@ import { AddJobPostingType } from "../schemas";
 import { ApplicationServices, CareerPostStatus, DATA_NOT_FOUND } from "../constants";
 import {
   countAllCareerPosts,
+  countAllPublicCareerPosts,
   createCareerPost,
   deleteCareerPostById,
   findAllCareerPostsPaginated,
+  findAllPublicCareerPostsPaginated,
   findBranchesByIds,
-  findCareerPostById
+  findCareerPostById,
+  findPublicCareerPostById
 } from "../services";
 
 const buildErrorPayload = (
@@ -99,6 +102,9 @@ export async function addJobPostingHandler(
     jobDescription: data.jobDescription.trim(),
     requirements: data.requirements.map((r) => r.trim()),
     benefits: data.benefits?.map((b) => b.trim()) || [],
+    responsibilities: data.responsibilities?.map((r) => r.trim()) || [],
+    workingHours: data.workingHours?.trim() || null,
+    startDate: data.startDate?.trim() || null,
     applications: [],
     postedAt: data.status === CareerPostStatus.ACTIVE ? new Date() : null
   });
@@ -136,6 +142,8 @@ export async function getAllJobPostingsHandler(req: Request, res: Response) {
     salary: post.showSalary
       ? { minimum: post.minimumSalary, maximum: post.maximumSalary, currency: post.currency }
       : null,
+    workingHours: post.workingHours,
+    startDate: post.startDate,
     numberOfApplications: post.applications.length,
     postedAt: post.postedAt ? post.postedAt.toISOString().split("T")[0] : null
   }));
@@ -192,8 +200,107 @@ export async function getSingleJobPostingHandler(req: Request, res: Response) {
     jobDescription: jobPost.jobDescription,
     requirements: jobPost.requirements,
     benefits: jobPost.benefits,
+    responsibilities: jobPost.responsibilities,
+    workingHours: jobPost.workingHours,
+    startDate: jobPost.startDate,
     branches: jobPost.branchesInfo.map((b) => ({ id: b.branchId, name: b.branchName })),
     numberOfApplications: jobPost.applications.length
+  };
+
+  return SendResponse.success({
+    res,
+    message: "Job posting fetched successfully",
+    data: {
+      jobPost: formattedJobPost
+    }
+  });
+}
+
+export async function getAllPublicJobPostingsHandler(req: Request, res: Response) {
+  const page = parseInt((req.query.page as string) || "1", 10);
+  const limit = parseInt((req.query.limit as string) || "10", 10);
+
+  const jobPosts = await findAllPublicCareerPostsPaginated(page, limit);
+  const totalJobPosts = await countAllPublicCareerPosts();
+
+  const hasNext = page * limit < totalJobPosts;
+
+  const formattedJobPosts = jobPosts.map((post) => ({
+    id: post._id.toString(),
+    jobTitle: post.jobTitle,
+    department: post.department,
+    employmentType: post.employmentType,
+    jobDescription: post.jobDescription,
+    applicationDeadline: post.applicationDeadline.toISOString().split("T")[0],
+    status: post.status,
+    branches: post.branchesInfo.map((b) => ({ id: b.branchId, name: b.branchName })),
+    salary: post.showSalary
+      ? { minimum: post.minimumSalary, maximum: post.maximumSalary, currency: post.currency }
+      : null,
+    workingHours: post.workingHours,
+    startDate: post.startDate,
+    requirements: post.requirements,
+    benefits: post.benefits,
+    responsibilities: post.responsibilities,
+    postedAt: post.postedAt ? post.postedAt.toISOString().split("T")[0] : null
+  }));
+
+  return SendResponse.success({
+    res,
+    message: "Job postings fetched successfully",
+    data: {
+      items: formattedJobPosts,
+      currentPage: page,
+      limit,
+      totalItems: totalJobPosts,
+      totalPages: Math.ceil(totalJobPosts / limit),
+      hasNext
+    }
+  });
+}
+
+export async function getSinglePublicJobPostingHandler(req: Request, res: Response) {
+  const functionName = getSinglePublicJobPostingHandler.name;
+  const { id } = req.params;
+
+  const jobPost = await findPublicCareerPostById(id);
+  if (!jobPost) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Job posting not found",
+        DATA_NOT_FOUND,
+        "Job posting not found"
+      )
+    });
+  }
+
+  const formattedJobPost = {
+    id: jobPost._id.toString(),
+    jobTitle: jobPost.jobTitle,
+    department: jobPost.department,
+    employmentType: jobPost.employmentType,
+    showSalary: jobPost.showSalary,
+    salary: jobPost.showSalary
+      ? {
+          minimum: jobPost.minimumSalary,
+          maximum: jobPost.maximumSalary,
+          currency: jobPost.currency
+        }
+      : null,
+    status: jobPost.status,
+    applicationDeadline: jobPost.applicationDeadline.toISOString().split("T")[0],
+    postedAt: jobPost.postedAt?.toISOString().split("T")[0],
+    jobDescription: jobPost.jobDescription,
+    requirements: jobPost.requirements,
+    benefits: jobPost.benefits,
+    responsibilities: jobPost.responsibilities,
+    workingHours: jobPost.workingHours,
+    startDate: jobPost.startDate,
+    branches: jobPost.branchesInfo.map((b) => ({ id: b.branchId, name: b.branchName }))
   };
 
   return SendResponse.success({
@@ -336,6 +443,11 @@ export async function updateJobPostingHandler(
   jobPost.jobDescription = data.jobDescription.trim() || jobPost.jobDescription;
   jobPost.requirements = data.requirements ? data.requirements.map((r) => r.trim()) : jobPost.requirements;
   jobPost.benefits = data.benefits ? data.benefits.map((b) => b.trim()) : jobPost.benefits;
+  jobPost.responsibilities = data.responsibilities
+    ? data.responsibilities.map((r) => r.trim())
+    : jobPost.responsibilities;
+  jobPost.workingHours = data.workingHours !== undefined ? data.workingHours?.trim() || null : jobPost.workingHours;
+  jobPost.startDate = data.startDate !== undefined ? data.startDate?.trim() || null : jobPost.startDate;
   jobPost.branchesInfo = branches.map((b) => ({
     branchId: b._id.toString(),
     branchName: b.name

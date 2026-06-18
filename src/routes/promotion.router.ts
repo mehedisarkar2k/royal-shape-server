@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireUser, validateResource } from "../middleware";
+import { requireUser, requireRole, validateResource } from "../middleware";
 import { asyncWrapper } from "../utils";
 import { createPromotionSchema } from "../schemas";
 import {
@@ -13,16 +13,28 @@ import {
 
 const router = Router();
 
-router.post("/create", requireUser, validateResource(createPromotionSchema), asyncWrapper(createPromotionHandler));
-router.get("/all", requireUser, asyncWrapper(getAllPromotionsHandler));
-router.get("/single/:promotionId", requireUser, asyncWrapper(getSinglePromotionHandler));
+router.post(
+  "/create",
+  requireUser,
+  requireRole("admin"),
+  validateResource(createPromotionSchema),
+  asyncWrapper(createPromotionHandler)
+);
+router.get("/all", requireUser, requireRole("admin"), asyncWrapper(getAllPromotionsHandler));
+router.get("/single/:promotionId", requireUser, requireRole("admin"), asyncWrapper(getSinglePromotionHandler));
 router.put(
   "/update/:promotionId",
   requireUser,
+  requireRole("admin"),
   validateResource(createPromotionSchema),
   asyncWrapper(updatePromotionHandler)
 );
-router.put("/toggle-status/:promotionId", requireUser, asyncWrapper(togglePromotionStatusHandler));
-router.delete("/delete/:promotionId", requireUser, asyncWrapper(deletePromotionHandler));
+router.put(
+  "/toggle-status/:promotionId",
+  requireUser,
+  requireRole("admin"),
+  asyncWrapper(togglePromotionStatusHandler)
+);
+router.delete("/delete/:promotionId", requireUser, requireRole("admin"), asyncWrapper(deletePromotionHandler));
 
 export default router;

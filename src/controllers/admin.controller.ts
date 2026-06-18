@@ -16,7 +16,8 @@ import {
   WebsiteServiceInfo,
   BookingModel,
   CustomerModel,
-  ServiceModel
+  ServiceModel,
+  AdminSettingsModel
 } from "../model";
 import { ApplicationServices, DATA_NOT_FOUND, UNAUTHORIZED_ERROR, BookingStatus } from "../constants";
 import { findServiceCategoryById } from "../services";
@@ -815,15 +816,15 @@ export async function getDashboardOverviewDataHandler(req: Request, res: Respons
     // the start/end of day in Australian timezone
     // Method: Create dates in UTC that match the Australian local date
     const todayDateStr = now.toFormat("yyyy-MM-dd");
-    const todayStart = new Date(`${todayDateStr}T00:00:00.000`);
-    const todayEnd = new Date(`${todayDateStr}T23:59:59.999`);
+    const todayStart = new Date(`${todayDateStr}T00:00:00.000Z`);
+    const todayEnd = new Date(`${todayDateStr}T23:59:59.999Z`);
 
     const yesterdayDateStr = now.minus({ days: 1 }).toFormat("yyyy-MM-dd");
-    const yesterdayStart = new Date(`${yesterdayDateStr}T00:00:00.000`);
-    const yesterdayEnd = new Date(`${yesterdayDateStr}T23:59:59.999`);
+    const yesterdayStart = new Date(`${yesterdayDateStr}T00:00:00.000Z`);
+    const yesterdayEnd = new Date(`${yesterdayDateStr}T23:59:59.999Z`);
 
     const lastMonthDateStr = now.minus({ months: 1 }).toFormat("yyyy-MM-dd");
-    const lastMonthEnd = new Date(`${lastMonthDateStr}T23:59:59.999`);
+    const lastMonthEnd = new Date(`${lastMonthDateStr}T23:59:59.999Z`);
 
     // * TOP SECTION DATA
 
@@ -1100,7 +1101,7 @@ export async function getDashboardOverviewDataHandler(req: Request, res: Respons
         req.method,
         "Failed to fetch dashboard overview data",
         { code: "INTERNAL_SERVER_ERROR", message: "An error occurred while fetching dashboard data" },
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? (error as Error).message : "Unknown error"
       )
     });
   }
@@ -1294,4 +1295,52 @@ export async function deleteWebsiteShowcaseHandler(req: Request, res: Response) 
     message: "Website showcase deleted successfully",
     data: null
   });
+}
+
+export async function getAdminSettingsHandler(req: Request, res: Response) {
+  try {
+    let settings = await AdminSettingsModel.findOne();
+    if (!settings) {
+      settings = await AdminSettingsModel.create({});
+    }
+    return SendResponse.success({ res, message: "Settings retrieved successfully", data: settings });
+  } catch (error: unknown) {
+    return SendErrorResponse.internalServer({
+      res,
+      ...buildErrorPayload(
+        "/api/admin/settings",
+        "getAdminSettingsHandler",
+        "GET",
+        (error as Error).message,
+        { code: "INTERNAL_SERVER_ERROR", message: "Failed to retrieve admin settings" },
+        "Internal server error"
+      )
+    });
+  }
+}
+
+export async function postAdminSettingsHandler(req: Request, res: Response) {
+  try {
+    const { reminders } = req.body;
+    let settings = await AdminSettingsModel.findOne();
+    if (!settings) {
+      settings = await AdminSettingsModel.create({ reminders });
+    } else {
+      settings.reminders = { ...settings.reminders, ...reminders };
+      await settings.save();
+    }
+    return SendResponse.success({ res, message: "Settings updated successfully", data: settings });
+  } catch (error: unknown) {
+    return SendErrorResponse.internalServer({
+      res,
+      ...buildErrorPayload(
+        "/api/admin/settings",
+        "postAdminSettingsHandler",
+        "POST",
+        (error as Error).message,
+        { code: "INTERNAL_SERVER_ERROR", message: "Failed to update admin settings" },
+        "Internal server error"
+      )
+    });
+  }
 }

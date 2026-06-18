@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireUser, validateResource } from "../middleware";
+import { requireUser, requireRole, validateResource } from "../middleware";
 import {
   addWebsiteShowcaseHandler,
   createBusinessInfoDocumentIfNotExists,
@@ -26,59 +26,86 @@ import {
   postWebsiteHomeDataSchema,
   postWebsiteServiceDataSchema
 } from "../schemas";
+import { getAdminSettingsHandler, postAdminSettingsHandler } from "../controllers";
 
 const router = Router();
 
-router.post("/business-info/init", asyncWrapper(createBusinessInfoDocumentIfNotExists));
+router.post(
+  "/business-info/init",
+  requireUser,
+  requireRole("admin"),
+  asyncWrapper(createBusinessInfoDocumentIfNotExists)
+);
 
-router.get("/website/home", requireUser, asyncWrapper(getWebsiteHomeDataHandler));
+router.get("/website/home", requireUser, requireRole("admin"), asyncWrapper(getWebsiteHomeDataHandler));
 router.post(
   "/website/home",
   requireUser,
+  requireRole("admin"),
   validateResource(postWebsiteHomeDataSchema),
   asyncWrapper(postWebsiteHomeDataHandler)
 );
 
-router.get("/website/service/:serviceCategoryId", requireUser, asyncWrapper(getWebsiteServiceDataHandler));
+router.get(
+  "/website/service/:serviceCategoryId",
+  requireUser,
+  requireRole("admin"),
+  asyncWrapper(getWebsiteServiceDataHandler)
+);
 router.post(
   "/website/service/:serviceCategoryId",
   requireUser,
+  requireRole("admin"),
   validateResource(postWebsiteServiceDataSchema),
   asyncWrapper(postWebsiteServiceDataHandler)
 );
 
-router.get("/website/about", asyncWrapper(getWebsiteAboutDataHandler));
+router.get("/website/about", requireUser, requireRole("admin"), asyncWrapper(getWebsiteAboutDataHandler));
 router.post(
   "/website/about",
   requireUser,
+  requireRole("admin"),
   validateResource(postWebsiteAboutDataSchema),
   asyncWrapper(postWebsiteAboutDataHandler)
 );
 
-router.get("/general-settings", requireUser, asyncWrapper(getGeneralSettingsDataHandler));
+router.get("/general-settings", requireUser, requireRole("admin"), asyncWrapper(getGeneralSettingsDataHandler));
 router.post(
   "/general-settings",
   requireUser,
+  requireRole("admin"),
   validateResource(postGeneralSettingsDataSchema),
   asyncWrapper(postGeneralSettingsDataHandler)
 );
 
-router.get("/social-links", requireUser, asyncWrapper(getSocialLinksDataHandler));
+router.get("/social-links", requireUser, requireRole("admin"), asyncWrapper(getSocialLinksDataHandler));
 router.post(
   "/social-links",
   requireUser,
+  requireRole("admin"),
   validateResource(postSocialMediaLinksDataSchema),
   asyncWrapper(postSocialLinksDataHandler)
 );
 
-router.get("/dashboard/overview", requireUser, asyncWrapper(getDashboardOverviewDataHandler));
+router.get("/dashboard/overview", requireUser, requireRole("admin"), asyncWrapper(getDashboardOverviewDataHandler));
 
-router.get("/website/showcase/all", requireUser, asyncWrapper(getAllWebsiteShowcaseHandler));
+router.get("/website/showcase/all", requireUser, requireRole("admin"), asyncWrapper(getAllWebsiteShowcaseHandler));
 router.post(
   "/website/showcase/add",
   requireUser,
+  requireRole("admin"),
   validateResource(addWebsiteShowcaseSchema),
   asyncWrapper(addWebsiteShowcaseHandler)
 );
-router.delete("/website/showcase/delete/:showcaseId", requireUser, asyncWrapper(deleteWebsiteShowcaseHandler));
+router.delete(
+  "/website/showcase/delete/:showcaseId",
+  requireUser,
+  requireRole("admin"),
+  asyncWrapper(deleteWebsiteShowcaseHandler)
+);
+
+// Admin Settings
+router.get("/settings", requireUser, requireRole("admin"), asyncWrapper(getAdminSettingsHandler));
+router.post("/settings", requireUser, requireRole("admin"), asyncWrapper(postAdminSettingsHandler));
+
 export default router;

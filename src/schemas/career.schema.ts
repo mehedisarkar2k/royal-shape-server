@@ -16,6 +16,9 @@ export const addJobPostingSchema = object({
     jobDescription: string().min(1, "Job description is required"),
     requirements: array(string().min(1, "Requirement item cannot be empty")).min(1, "Requirements are required"),
     benefits: array(string().min(1, "Benefit item cannot be empty")).optional().nullable(),
+    responsibilities: array(string().min(1, "Responsibility item cannot be empty")).optional().nullable(),
+    workingHours: string().optional().nullable(),
+    startDate: string().optional().nullable(),
     branchIds: array(string().min(1, "Branch ID cannot be empty")).min(1, "At least one Branch is required")
   })
 });

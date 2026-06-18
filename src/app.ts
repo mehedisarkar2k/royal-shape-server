@@ -19,17 +19,22 @@ const v1BaseEndpoint = ENVIRONMENT && ENVIRONMENT.toLowerCase() === "development
 app.use(express.json());
 app.use(helmet());
 
+const getAllowedOrigins = (): string[] => {
+  const envOrigins = process.env.ALLOWED_ORIGINS;
+  if (!envOrigins) return [];
+  return envOrigins.split(",").map(origin => origin.trim());
+};
+
 const restrictiveCorsOptions: CorsOptions = {
-  origin: [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://localhost:3002",
-    "http://localhost:3003",
-    "http://localhost:3004",
-    "https://royalthreadingandbeauty.vercel.app",
-    "https://client.stickyclass.com",
-    "https://royalthreadingandbeauty.com.au"
-  ],
+  origin: (origin, callback) => {
+    const allowedOrigins = getAllowedOrigins();
+    // Allow if origin is in the list, or if there is no origin (e.g. Server-to-server requests / curl)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true
 };
 

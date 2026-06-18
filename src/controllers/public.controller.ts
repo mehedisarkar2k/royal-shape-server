@@ -16,7 +16,8 @@ import {
   findBranchById,
   findCareerPostById,
   findServicesByCategoryId,
-  findServiceCategoryById
+  findServiceCategoryById,
+  findActiveServicesByCategoryIdAndBranch
 } from "../services";
 import { ReviewModel } from "../model/review.model";
 import { ApplyCareerPostType, SubmitReviewInput } from "../schemas";
@@ -1122,7 +1123,7 @@ export async function getWebsiteBranchServicesPublicDataHandler(req: Request, re
   const serviceCategories = await findAllServiceCategoriesOfBranch(branch._id.toString());
   const finalServicesCategories = await Promise.all(
     serviceCategories.map(async (category) => {
-      const services = await findServicesByCategoryId(category._id.toString());
+      const services = await findActiveServicesByCategoryIdAndBranch(category._id.toString(), branch._id.toString());
 
       return {
         categoryId: category._id.toString(),

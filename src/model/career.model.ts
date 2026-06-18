@@ -72,6 +72,15 @@ export class Career {
   @Prop({ required: false, type: [String], default: [] })
   benefits?: string[];
 
+  @Prop({ required: false, type: [String], default: [] })
+  responsibilities?: string[];
+
+  @Prop({ required: false, type: String, default: null })
+  workingHours?: string | null;
+
+  @Prop({ required: false, type: String, default: null })
+  startDate?: string | null;
+
   @Prop({ required: true, type: Array<BranchInfo>, _id: false })
   branchesInfo: BranchInfo[];
 

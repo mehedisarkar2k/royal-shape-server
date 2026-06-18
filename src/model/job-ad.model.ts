@@ -58,6 +58,15 @@ export class JobAd {
   @Prop({ required: true, type: Array<string> })
   benefits: string[];
 
+  @Prop({ required: false, type: Array<string>, default: [] })
+  responsibilities: string[];
+
+  @Prop({ required: false, type: String, default: null })
+  workingHours: string | null;
+
+  @Prop({ required: false, type: String, default: null })
+  startDate: string | null;
+
   @Prop({ required: true, type: Array<BranchRef>, default: [], _id: false })
   branches: BranchRef[];
 

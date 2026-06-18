@@ -1,83 +1,9 @@
-import fs from "fs";
-import path from "path";
-import axios from "axios";
 import { format } from "date-fns";
 import config from "config";
-
-import { logger } from "./logger";
-
-const loadTemplate = (templateName: string, data: unknown): string => {
-  const templatePath = path.join(__dirname, "..", "templates", `${templateName}.html`);
-  const template = fs.readFileSync(templatePath, "utf8");
-  let output = template;
-
-  const entries = Object.entries(data as { [key: string]: unknown });
-  entries.forEach(([key, value]) => {
-    output = output.replace(new RegExp(`{{${key}}}`, "g"), value as string);
-  });
-
-  return output;
-};
-
-// Brevo API configuration
-const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
-const BREVO_API_KEY = process.env.BREVO_API_KEY || (config.get("brevo.apiKey") as string);
-const SENDER_EMAIL = process.env.SENDER_EMAIL || (config.get("brevo.senderEmail") as string);
-const SENDER_NAME = process.env.SENDER_NAME || (config.get("brevo.senderName") as string) || "Royal Shape";
-
-// Verify Brevo configuration on startup
-if (!BREVO_API_KEY) {
-  logger.error("⚠️  BREVO_API_KEY is not configured!");
-} else {
-  logger.info("✅ Brevo API Ready");
-}
+import { EmailService } from "../services/email/email.service";
 
 export const sendEmail = async (to: string, subject: string, html: string) => {
-  try {
-    const response = await axios.post(
-      BREVO_API_URL,
-      {
-        sender: {
-          email: SENDER_EMAIL,
-          name: SENDER_NAME
-        },
-        to: [
-          {
-            email: to
-          }
-        ],
-        subject: subject,
-        htmlContent: html
-      },
-      {
-        headers: {
-          "api-key": BREVO_API_KEY,
-          "Content-Type": "application/json",
-          accept: "application/json"
-        },
-        timeout: 10000 // 10 second timeout
-      }
-    );
-
-    logger.info(`✅ Email sent successfully to ${to} | Message ID: ${response.data.messageId}`);
-    return { success: true, messageId: response.data.messageId };
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const errorMessage = error.response?.data?.message || error.message;
-      const errorCode = error.response?.data?.code || error.code;
-      logger.error(`❌ Failed to send email to ${to} | Error: ${errorMessage} | Code: ${errorCode}`);
-
-      // Log detailed error for debugging
-      if (error.response) {
-        logger.error(`Response status: ${error.response.status}`);
-        logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
-      }
-    } else {
-      logger.error(`❌ Unexpected error sending email to ${to}: ${(error as Error).message}`);
-    }
-
-    throw error; // Re-throw to allow caller to handle
-  }
+  return await EmailService.sendEmail({ to, subject, html });
 };
 
 export const sendContactUsEmail = async ({
@@ -93,7 +19,7 @@ export const sendContactUsEmail = async ({
 }) => {
   const subject = `${name} submitted a request from contact section.`;
   const copyRightYear = format(new Date(), "yyyy");
-  const html = loadTemplate("contact-us.template", {
+  const html = EmailService.loadTemplate("contact-us", {
     name,
     email,
     topic,
@@ -118,7 +44,7 @@ export const sendBookingRequestEmail = async (data: {
 }) => {
   const subject = `New booking request: ${data.companyName} `;
   const copyRightYear = format(new Date(), "yyyy");
-  const html = loadTemplate("booking-request.template", {
+  const html = EmailService.loadTemplate("booking-request", {
     ...data,
     copyRightYear
   });
@@ -139,7 +65,7 @@ export const sendBookingRequestSubmissionEmailToAdmin = async (data: {
 }) => {
   const subject = `New booking request submitted from ${data.customerName} `;
   const copyRightYear = format(new Date(), "yyyy");
-  const html = loadTemplate("booking-request-admin.template", {
+  const html = EmailService.loadTemplate("booking-request-admin", {
     ...data,
     copyRightYear
   });
@@ -161,7 +87,7 @@ export const sendBookingConfirmationEmail = async (data: {
 }) => {
   const subject = `Booking confirmed: ${data.companyName} `;
   const copyRightYear = format(new Date(), "yyyy");
-  const html = loadTemplate("booking-confirm.template", {
+  const html = EmailService.loadTemplate("booking-confirm", {
     ...data,
     copyRightYear
   });
@@ -178,7 +104,7 @@ export const sendReviewRequestEmail = async (
 ) => {
   const subject = `We value your feedback! Please share your review.`;
   const copyRightYear = format(new Date(), "yyyy");
-  const html = loadTemplate("review-request.template", {
+  const html = EmailService.loadTemplate("review-request", {
     copyRightYear,
     companyName,
     companyEmail,

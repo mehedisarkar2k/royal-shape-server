@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireUser, validateResource } from "../middleware";
+import { requireUser, requireRole, validateResource } from "../middleware";
 import {
   createCustomerHandler,
   deleteCustomerHandler,
@@ -18,16 +18,23 @@ import upload from "../utils/multer";
 
 const router = Router();
 
-router.post("/create", requireUser, validateResource(createCustomerSchema), asyncWrapper(createCustomerHandler));
-router.get("/all", requireUser, asyncWrapper(getAllCustomersHandler));
-router.get("/single/:customerId", requireUser, asyncWrapper(getSingleCustomerHandler));
+router.post(
+  "/create",
+  requireUser,
+  requireRole("admin"),
+  validateResource(createCustomerSchema),
+  asyncWrapper(createCustomerHandler)
+);
+router.get("/all", requireUser, requireRole("admin"), asyncWrapper(getAllCustomersHandler));
+router.get("/single/:customerId", requireUser, requireRole("admin"), asyncWrapper(getSingleCustomerHandler));
 router.put(
   "/update/:customerId",
   requireUser,
+  requireRole("admin"),
   validateResource(updateCustomerSchema),
   asyncWrapper(updateCustomerHandler)
 );
-router.delete("/delete/:customerId", requireUser, asyncWrapper(deleteCustomerHandler));
+router.delete("/delete/:customerId", requireUser, requireRole("admin"), asyncWrapper(deleteCustomerHandler));
 
 router.get("/booking-history", requireUser, asyncWrapper(getCustomerBookingHistoryHandler));
 router.get("/authenticated/single", requireUser, asyncWrapper(getAuthenticatedSingleCustomerHandler));

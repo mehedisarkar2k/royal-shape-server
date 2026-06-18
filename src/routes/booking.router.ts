@@ -3,6 +3,7 @@ import { requireUser, validateResource } from "../middleware";
 import {
   bulkMarkBookingsAsCompletedHandler,
   cancelBookingHandler,
+  cancelOwnBookingHandler,
   confirmBookingHandler,
   getAllBookingsHandler,
   getAvailableSlotsHandler,
@@ -29,6 +30,12 @@ router.post(
 );
 router.put("/confirm", requireUser, validateResource(confirmBookingSchema), asyncWrapper(confirmBookingHandler));
 router.put("/cancel", requireUser, validateResource(confirmBookingSchema), asyncWrapper(cancelBookingHandler));
+router.put(
+  "/customer/cancel",
+  requireUser,
+  validateResource(confirmBookingSchema),
+  asyncWrapper(cancelOwnBookingHandler)
+);
 router.put(
   "/mark-completed",
   requireUser,

@@ -37,7 +37,9 @@ import {
   BookingStatus,
   CONFLICT_ERROR,
   DATA_NOT_FOUND,
-  UNEXPECTED_ERROR
+  UNAUTHORIZED_ERROR,
+  UNEXPECTED_ERROR,
+  UserType
 } from "../constants";
 import { createCustomer, findCustomerByEmail, findCustomerById } from "../services/customer.service";
 import { findComboById } from "../services";
@@ -913,6 +915,120 @@ export async function cancelBookingHandler(
         "Booking is already cancelled",
         BAD_REQUEST,
         "Booking is already cancelled"
+      )
+    });
+  }
+
+  booking.status = BookingStatus.CANCELLED;
+  await booking.save();
+
+  invalidateBookingCaches(booking._id.toString());
+
+  return SendResponse.success({
+    res,
+    message: "Booking cancelled successfully",
+    data: {
+      bookingId: booking._id.toString()
+    }
+  });
+}
+
+const MIN_CANCELLATION_NOTICE_HOURS = 24;
+
+/** Self-service cancellation for the logged-in customer: unlike cancelBookingHandler
+ *  (admin tool, any booking, any time), this only lets a customer cancel their own
+ *  booking, and only while it's still more than 24h away. */
+export async function cancelOwnBookingHandler(
+  req: Request<Record<string, never>, Record<string, never>, ConfirmBookingType>,
+  res: Response
+) {
+  const functionName = cancelOwnBookingHandler.name;
+  const { bookingId } = req.body;
+  const currentUser = res.locals.user;
+
+  if (currentUser.userType !== UserType.CUSTOMER) {
+    return SendErrorResponse.unauthorized({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "This endpoint is only accessible to customers",
+        UNAUTHORIZED_ERROR,
+        "You are not authorized to access this endpoint"
+      )
+    });
+  }
+
+  const customer = await findCustomerByEmail(currentUser.email);
+  if (!customer) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Customer not found",
+        DATA_NOT_FOUND,
+        "Customer not found"
+      )
+    });
+  }
+
+  const booking = await findBookingById(bookingId);
+  if (!booking) {
+    return SendErrorResponse.notFound({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Booking not found",
+        DATA_NOT_FOUND,
+        "Booking not found"
+      )
+    });
+  }
+
+  if (booking.customerId !== customer._id.toString()) {
+    return SendErrorResponse.unauthorized({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "This booking does not belong to the requesting customer",
+        UNAUTHORIZED_ERROR,
+        "You are not authorized to cancel this booking"
+      )
+    });
+  }
+
+  if (booking.status === BookingStatus.CANCELLED || booking.status === BookingStatus.COMPLETED) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        `Booking is already ${booking.status}`,
+        BAD_REQUEST,
+        `This booking is already ${booking.status} and can't be cancelled`
+      )
+    });
+  }
+
+  const hoursUntilBooking = (booking.bookingDate.getTime() - Date.now()) / (1000 * 60 * 60);
+  if (hoursUntilBooking < MIN_CANCELLATION_NOTICE_HOURS) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Booking is too close to be cancelled",
+        BAD_REQUEST,
+        "Bookings can only be cancelled at least 24 hours before the appointment. Please contact us directly."
       )
     });
   }

@@ -329,7 +329,8 @@ export async function getCustomerBookingHistoryHandler(req: Request, res: Respon
         date: booking.bookingDate.toISOString().split("T")[0],
         startTime: booking.startTime,
         endTime: booking.endTime,
-        status: booking.status
+        status: booking.status,
+        receiptKey: booking.receiptKey ?? null
       };
     })
   );

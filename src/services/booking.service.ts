@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { customAlphabet } from "nanoid";
 import { Booking, BookingModel } from "../model";
+import { BookingStatus } from "../constants";
 
 export function createBooking(data: Booking) {
   return BookingModel.create(data);
@@ -18,7 +19,8 @@ export function findBookingsByBranchAndDate(branchId: string, date: Date) {
     bookingDate: {
       $gte: startOfDay,
       $lte: endOfDay
-    }
+    },
+    status: { $ne: BookingStatus.CANCELLED }
   });
 }
 

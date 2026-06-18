@@ -44,6 +44,12 @@ export class Booking {
 
   @Prop({ required: true, type: String, enum: BookingStatus })
   status: BookingStatus;
+
+  @Prop({ required: false, type: Boolean, default: false })
+  isGuestBooking?: boolean;
+
+  @Prop({ required: false, type: String, default: null })
+  receiptKey?: string | null;
 }
 
 export const BookingModel = getModelForClass(Booking);

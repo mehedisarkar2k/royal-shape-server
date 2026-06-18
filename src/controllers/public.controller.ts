@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
+import { isValidObjectId } from "mongoose";
 import { v4 as uuid } from "uuid";
 import { appCache, SendErrorResponse, SendResponse } from "../utils";
-import { BlogModel, BusinessInfoModel, PromotionModel, WeeklySchedule } from "../model";
+import { BlogModel, BusinessInfoModel, PromotionModel, WeeklySchedule, WebsiteServiceInfo } from "../model";
 import { ApplicationServices, BlogStatus, DATA_NOT_FOUND, INPUT_MISSING, UNEXPECTED_ERROR } from "../constants";
 import {
   findAllAwardsPaginated,
@@ -320,7 +321,9 @@ export async function getWebsiteFooterPublicDataHandler(req: Request, res: Respo
       youtube: socialInfo.youtube || "",
       tiktok: socialInfo.tiktok || ""
     },
-    copyRightMsg: (businessInfo.copyRightMsg || `© ${new Date().getFullYear()} Royal Threading & Beauty. All rights reserved.`).replace(/20\d{2}/, new Date().getFullYear().toString()),
+    copyRightMsg: (
+      businessInfo.copyRightMsg || `© ${new Date().getFullYear()} Royal Threading & Beauty. All rights reserved.`
+    ).replace(/20\d{2}/, new Date().getFullYear().toString()),
     contact: {
       phone: businessInfo.phone,
       email: businessInfo.email,
@@ -455,7 +458,16 @@ export async function getWebsiteSingleServicePageDataHandler(req: Request, res: 
     });
   }
 
-  let serviceData: any = services.find((s) => s.serviceId === serviceId);
+  type FallbackServiceData = {
+    serviceId: string;
+    serviceName: string;
+    heroSection: Partial<WebsiteServiceInfo["heroSection"]>;
+    bodySections: WebsiteServiceInfo["bodySections"];
+  };
+
+  let serviceData: WebsiteServiceInfo | FallbackServiceData | undefined = services.find(
+    (s) => s.serviceId === serviceId
+  );
   if (!serviceData) {
     // Fallback to ServiceCategory if specific single-service details are missing
     const category = await findServiceCategoryById(serviceId);
@@ -477,11 +489,13 @@ export async function getWebsiteSingleServicePageDataHandler(req: Request, res: 
       serviceName: category.name,
       heroSection: {
         title: category.name,
-        subtitle: category.description,
-        image: category.thumbnail || "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=1920&q=80",
+        subtitle: category.description ?? undefined,
+        image:
+          category.thumbnail ||
+          "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=1920&q=80"
       },
       bodySections: []
-    } as any;
+    };
   }
 
   const serviceItems = await findServicesByCategoryId(serviceId);
@@ -1044,6 +1058,16 @@ export async function getWebsiteContactPageDataHandler(req: Request, res: Respon
 }
 
 export async function getWebsiteBranchesPublicDataHandler(req: Request, res: Response) {
+  const cacheKey = "website_branches_data";
+  const cachedData = appCache.get(cacheKey);
+  if (cachedData) {
+    return SendResponse.success({
+      res,
+      message: "Website branches public data fetched successfully (cached)",
+      data: cachedData
+    });
+  }
+
   const branches = await findAllBranches();
   const finalBranches = branches.map((branch) => {
     return {
@@ -1053,12 +1077,16 @@ export async function getWebsiteBranchesPublicDataHandler(req: Request, res: Res
     };
   });
 
+  const responseData = {
+    branches: finalBranches
+  };
+
+  appCache.set(cacheKey, responseData);
+
   return SendResponse.success({
     res,
     message: "Website branches public data fetched successfully",
-    data: {
-      branches: finalBranches
-    }
+    data: responseData
   });
 }
 
@@ -1066,7 +1094,17 @@ export async function getWebsiteBranchServicesPublicDataHandler(req: Request, re
   const functionName = getWebsiteBranchServicesPublicDataHandler.name;
   const { branchId } = req.params;
 
-  const branch = await findBranchById(branchId);
+  const cacheKey = `website_branch_services_data_${branchId}`;
+  const cachedData = appCache.get(cacheKey);
+  if (cachedData) {
+    return SendResponse.success({
+      res,
+      message: "Website pricing page data fetched successfully (cached)",
+      data: cachedData
+    });
+  }
+
+  const branch = isValidObjectId(branchId) ? await findBranchById(branchId) : null;
   if (!branch) {
     return SendErrorResponse.notFound({
       res,
@@ -1110,15 +1148,19 @@ export async function getWebsiteBranchServicesPublicDataHandler(req: Request, re
     features: combo.comboItems
   }));
 
+  const responseData = {
+    individualServices: {
+      serviceCategories: finalServicesCategories
+    },
+    serviceCombos: finalComboServices || []
+  };
+
+  appCache.set(cacheKey, responseData);
+
   return SendResponse.success({
     res,
     message: "Website pricing page data fetched successfully",
-    data: {
-      individualServices: {
-        serviceCategories: finalServicesCategories
-      },
-      serviceCombos: finalComboServices || []
-    }
+    data: responseData
   });
 }
 

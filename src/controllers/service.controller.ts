@@ -3,7 +3,7 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
 import { ApplicationServices, DATA_NOT_FOUND, FORBIDDEN_ERROR } from "../constants";
-import { SendErrorResponse, SendResponse } from "../utils";
+import { SendErrorResponse, SendResponse, appCache, clearCacheByPrefix } from "../utils";
 import {
   countServiceCategories,
   countServicesOfCategory,
@@ -40,6 +40,15 @@ const buildErrorPayload = (
     id: uuid()
   }
 });
+
+/** Drops every cached website response that surfaces services/categories. */
+const invalidateServiceCaches = () => {
+  appCache.del("website_home_data");
+  appCache.del("website_pricing_page_data");
+  appCache.del("website_services_page_data");
+  clearCacheByPrefix("website_branch_services_data_");
+  clearCacheByPrefix("website_single_service_data_");
+};
 
 export async function createServiceCategoryHandler(
   req: Request<Record<string, never>, Record<string, never>, CreateServiceCategoryInput>,
@@ -83,6 +92,8 @@ export async function createServiceCategoryHandler(
     ...data,
     branches: branches.map((branch) => ({ branchId: branch._id.toString(), branchName: branch.name }))
   });
+
+  invalidateServiceCaches();
 
   return SendResponse.created({
     res,
@@ -189,6 +200,8 @@ export async function updateServiceCategoryHandler(
 
   await serviceCategory.save();
 
+  invalidateServiceCaches();
+
   return SendResponse.success({
     res,
     message: "Service category updated successfully!",
@@ -222,6 +235,8 @@ export async function deleteServiceCategoryHandler(req: Request, res: Response) 
 
   // * delete the category
   await deleteServiceCategoryById(id);
+
+  invalidateServiceCaches();
 
   return SendResponse.success({
     res,
@@ -269,6 +284,8 @@ export async function createServiceHandler(req: Request, res: Response) {
     ...data,
     branches: branches.map((branch) => ({ branchId: branch._id.toString(), branchName: branch.name }))
   });
+
+  invalidateServiceCaches();
 
   return SendResponse.created({
     res,
@@ -329,6 +346,8 @@ export async function updateServiceHandler(
 
   await service.save();
 
+  invalidateServiceCaches();
+
   return SendResponse.success({
     res,
     message: "Service updated successfully!",
@@ -358,6 +377,8 @@ export async function deleteServiceHandler(req: Request, res: Response) {
   }
 
   await deleteServiceById(id);
+
+  invalidateServiceCaches();
 
   return SendResponse.success({
     res,

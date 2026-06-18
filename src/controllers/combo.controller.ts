@@ -3,7 +3,7 @@ import { v4 as uuid } from "uuid";
 import { CreateComboInput } from "../schemas";
 import { countCombos, createCombo, findAllCombosPaginated, findBranchesByIds, findComboById } from "../services";
 import { ApplicationServices, DATA_NOT_FOUND } from "../constants";
-import { SendErrorResponse, SendResponse } from "../utils";
+import { SendErrorResponse, SendResponse, appCache, clearCacheByPrefix } from "../utils";
 
 const buildErrorPayload = (
   endpoint: string,
@@ -23,6 +23,13 @@ const buildErrorPayload = (
     id: uuid()
   }
 });
+
+/** Drops every cached website response that surfaces combos. */
+const invalidateComboCaches = () => {
+  appCache.del("website_home_data");
+  appCache.del("website_pricing_page_data");
+  clearCacheByPrefix("website_branch_services_data_");
+};
 
 export async function createComboHandler(
   req: Request<Record<string, never>, Record<string, never>, CreateComboInput>,
@@ -68,6 +75,8 @@ export async function createComboHandler(
       )
     });
   }
+
+  invalidateComboCaches();
 
   return SendResponse.success({
     res,
@@ -201,6 +210,8 @@ export async function updateComboHandler(
 
   await combo.save();
 
+  invalidateComboCaches();
+
   return SendResponse.success({
     res,
     message: "Combo updated successfully",
@@ -232,6 +243,8 @@ export async function deleteComboHandler(req: Request, res: Response) {
   }
 
   await combo.deleteOne();
+
+  invalidateComboCaches();
 
   return SendResponse.success({
     res,

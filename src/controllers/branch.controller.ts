@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
 import { CreateBranchType } from "../schemas";
 import { createBranch, findAllBranches, findBranchById } from "../services";
-import { SendErrorResponse, SendResponse } from "../utils";
+import { SendErrorResponse, SendResponse, appCache } from "../utils";
 import { ApplicationServices, DATA_NOT_FOUND, FORBIDDEN_ERROR } from "../constants";
 
 const buildErrorPayload = (
@@ -53,6 +53,9 @@ export async function createBranchHandler(
     latitude: data.latitude,
     longitude: data.longitude
   });
+
+  appCache.del("website_branches_data");
+  appCache.del("website_home_data");
 
   return SendResponse.created({
     res,
@@ -143,6 +146,10 @@ export async function updateBranchHandler(
 
   branch.markModified("weeklySchedule");
   await branch.save();
+
+  appCache.del("website_branches_data");
+  appCache.del("website_home_data");
+  appCache.del(`website_branch_services_data_${id}`);
 
   return SendResponse.success({
     res,
@@ -249,6 +256,10 @@ export async function deleteBranchHandler(req: Request<{ id: string }>, res: Res
   }
 
   await branch.deleteOne();
+
+  appCache.del("website_branches_data");
+  appCache.del("website_home_data");
+  appCache.del(`website_branch_services_data_${id}`);
 
   return SendResponse.success({
     res,

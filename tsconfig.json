@@ -9,7 +9,6 @@
     "strict": true /* Enable all strict type-checking options. */,
     "skipLibCheck": true /* Skip type checking all .d.ts files. */,
     "noImplicitAny": true,
-    "moduleResolution": "Node",
     "sourceMap": true,
     "experimentalDecorators": true,
     "strictPropertyInitialization": false,

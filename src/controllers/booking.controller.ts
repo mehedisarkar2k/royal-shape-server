@@ -13,7 +13,9 @@ import {
   sendBookingRequestEmail,
   logger,
   sendBookingRequestSubmissionEmailToAdmin,
-  sendBookingConfirmationEmail
+  sendBookingConfirmationEmail,
+  appCache,
+  clearCacheByPrefix
 } from "../utils";
 import { ConfirmBookingType, RequestBookingType, UpdateBookingType } from "../schemas";
 import { findBranchById } from "../services/branch.service";
@@ -40,6 +42,7 @@ import {
 import { createCustomer, findCustomerByEmail, findCustomerById } from "../services/customer.service";
 import { findComboById } from "../services";
 import { BusinessInfoModel } from "../model";
+import { generateAndUploadReceipt } from "../services/receipt.service";
 
 const buildErrorPayload = (
   endpoint: string,
@@ -59,6 +62,16 @@ const buildErrorPayload = (
     id: uuid()
   }
 });
+
+/** Drops every cached booking response affected by a create/status/update mutation. */
+const invalidateBookingCaches = (bookingId?: string) => {
+  clearCacheByPrefix("bookings_all_");
+  appCache.del("booking_short_stats");
+  if (bookingId) {
+    appCache.del(`booking_single_${bookingId}`);
+    appCache.del(`booking_public_single_${bookingId}`);
+  }
+};
 
 export async function getAvailableSlotsHandler(req: Request, res: Response) {
   const functionName = getAvailableSlotsHandler.name;
@@ -181,6 +194,9 @@ export async function requestBookingHandler(
 ) {
   const functionName = requestBookingHandler.name;
   const { branchId, services, combo, date, startTime, endTime, customerInfo } = req.body;
+  // No requireUser on this route — a present res.locals.user means an authenticated
+  // customer made this request; absent means a guest, which admins need to filter on.
+  const isGuestBooking = !res.locals.user;
 
   if (!services && !combo) {
     return SendErrorResponse.badRequest({
@@ -313,7 +329,8 @@ export async function requestBookingHandler(
       totalPrice: comboService.price,
       discount: null,
       notes: customerInfo.specialNotes || null,
-      status: BookingStatus.PENDING
+      status: BookingStatus.PENDING,
+      isGuestBooking
     });
 
     const businessInfo = await BusinessInfoModel.findOne({});
@@ -361,11 +378,43 @@ export async function requestBookingHandler(
       );
     }
 
+    let receiptKey: string | null = null;
+    try {
+      receiptKey = await generateAndUploadReceipt({
+        bookingId: newBooking._id.toString(),
+        shortId: newBooking.shortId,
+        companyName,
+        branchName: branch.name,
+        branchAddress: `${branch.address.addressLine1}, ${branch.address.city || ""} ${branch.address.state || ""} ${branch.address.zipCode || ""}`.trim(),
+        branchPhone: branch.phone.e164,
+        customerName: `${customer.firstName} ${customer.lastName}`.trim(),
+        customerEmail: customer.email || "N/A",
+        customerPhone: customer.phone ? customer.phone.e164 : "N/A",
+        lineItems: [{ name: comboService.name, duration: comboService.duration, price: comboService.price }],
+        date: newBooking.bookingDate.toISOString().split("T")[0],
+        startTime: newBooking.startTime,
+        endTime: newBooking.endTime,
+        totalPrice: newBooking.totalPrice,
+        status: newBooking.status
+      });
+      if (receiptKey) {
+        newBooking.receiptKey = receiptKey;
+        await newBooking.save();
+      }
+    } catch (error) {
+      logger.error(
+        `Failed to generate receipt for booking ID: ${newBooking._id.toString()}. Error: ${(error as Error).message}`
+      );
+    }
+
+    invalidateBookingCaches();
+
     return SendResponse.success({
       res,
       message: "Booking requested successfully",
       data: {
-        bookingId: newBooking._id.toString()
+        bookingId: newBooking._id.toString(),
+        receiptKey
       }
     });
   }
@@ -450,7 +499,8 @@ export async function requestBookingHandler(
     totalPrice,
     discount: null,
     notes: customerInfo.specialNotes || null,
-    status: BookingStatus.PENDING
+    status: BookingStatus.PENDING,
+    isGuestBooking
   });
 
   const businessInfo = await BusinessInfoModel.findOne({});
@@ -498,11 +548,43 @@ export async function requestBookingHandler(
     );
   }
 
+  let receiptKey: string | null = null;
+  try {
+    receiptKey = await generateAndUploadReceipt({
+      bookingId: newBooking._id.toString(),
+      shortId: newBooking.shortId,
+      companyName,
+      branchName: branch.name,
+      branchAddress: `${branch.address.addressLine1}, ${branch.address.city || ""} ${branch.address.state || ""} ${branch.address.zipCode || ""}`.trim(),
+      branchPhone: branch.phone.e164,
+      customerName: `${customer.firstName} ${customer.lastName}`.trim(),
+      customerEmail: customer.email || "N/A",
+      customerPhone: customer.phone ? customer.phone.e164 : "N/A",
+      lineItems: servicesForBooking.map((s) => ({ name: s.name, duration: s.duration, price: s.price })),
+      date: newBooking.bookingDate.toISOString().split("T")[0],
+      startTime: newBooking.startTime,
+      endTime: newBooking.endTime,
+      totalPrice: newBooking.totalPrice,
+      status: newBooking.status
+    });
+    if (receiptKey) {
+      newBooking.receiptKey = receiptKey;
+      await newBooking.save();
+    }
+  } catch (error) {
+    logger.error(
+      `Failed to generate receipt for booking ID: ${newBooking._id.toString()}. Error: ${(error as Error).message}`
+    );
+  }
+
+  invalidateBookingCaches();
+
   return SendResponse.success({
     res,
     message: "Booking requested successfully",
     data: {
-      bookingId: newBooking._id.toString()
+      bookingId: newBooking._id.toString(),
+      receiptKey
     }
   });
 }
@@ -575,32 +657,22 @@ export async function manualCreateBookingHandler(
   const serviceIdArray = services || [];
   const comboId = combo || null;
 
-  const servicesForBooking = await findServicesByIds(serviceIdArray);
-  if (servicesForBooking.length === 0) {
-    return SendErrorResponse.notFound({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "No services found for the provided service IDs",
-        DATA_NOT_FOUND,
-        "No services found for the provided service IDs"
-      )
-    });
-  }
-  if (serviceIdArray.length !== servicesForBooking.length) {
-    return SendErrorResponse.notFound({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "Some services not found for the provided service IDs",
-        DATA_NOT_FOUND,
-        "Some services not found for the provided service IDs"
-      )
-    });
+  let servicesForBooking: any[] = [];
+  if (serviceIdArray.length > 0) {
+    servicesForBooking = await findServicesByIds(serviceIdArray);
+    if (servicesForBooking.length === 0 || serviceIdArray.length !== servicesForBooking.length) {
+      return SendErrorResponse.notFound({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Some or all services not found for the provided service IDs",
+          DATA_NOT_FOUND,
+          "Some or all services not found for the provided service IDs"
+        )
+      });
+    }
   }
 
   const branch = await findBranchById(branchId);
@@ -637,11 +709,17 @@ export async function manualCreateBookingHandler(
   }
 
   let totalPrice = 0;
-  if (servicesForBooking.length > 0) {
+  if (comboId) {
+    const comboService = await findComboById(comboId);
+    if (!comboService) {
+      return SendErrorResponse.notFound({
+        res,
+        ...buildErrorPayload(req.originalUrl, functionName, req.method, "Combo not found", DATA_NOT_FOUND, "Combo not found")
+      });
+    }
+    totalPrice = comboService.price;
+  } else if (servicesForBooking.length > 0) {
     totalPrice = servicesForBooking.reduce((sum, service) => sum + service.price, 0);
-  } else {
-    // If combo booking, find the combo and get its price
-    totalPrice = 100; // Replace with actual combo price
   }
 
   const bookingDate = parseDateTimeFromDateAndTimeStr(date, startTime);
@@ -676,6 +754,8 @@ export async function manualCreateBookingHandler(
     notes: customerInfo.specialNotes || null,
     status: BookingStatus.CONFIRMED
   });
+
+  invalidateBookingCaches();
 
   return SendResponse.success({
     res,
@@ -790,6 +870,8 @@ export async function confirmBookingHandler(
     }
   }
 
+  invalidateBookingCaches(booking._id.toString());
+
   return SendResponse.success({
     res,
     message: "Booking confirmed successfully",
@@ -837,6 +919,8 @@ export async function cancelBookingHandler(
 
   booking.status = BookingStatus.CANCELLED;
   await booking.save();
+
+  invalidateBookingCaches(booking._id.toString());
 
   return SendResponse.success({
     res,
@@ -886,6 +970,8 @@ export async function markBookingAsCompletedHandler(
   booking.status = BookingStatus.COMPLETED;
   await booking.save();
 
+  invalidateBookingCaches(booking._id.toString());
+
   return SendResponse.success({
     res,
     message: "Booking marked as completed successfully",
@@ -900,6 +986,16 @@ export async function getAllBookingsHandler(req: Request, res: Response) {
 
   const page = parseInt((req.query.page as string) || "1", 10);
   const limit = parseInt((req.query.limit as string) || "10", 10);
+
+  const cacheKey = `bookings_all_page_${page}_limit_${limit}`;
+  const cachedData = appCache.get(cacheKey);
+  if (cachedData) {
+    return SendResponse.success({
+      res,
+      message: "All bookings retrieved successfully (cached)",
+      data: cachedData
+    });
+  }
 
   const bookings = await findAllBookingsPaginated(page, limit);
   const totalBookings = await countAllBookings();
@@ -948,7 +1044,8 @@ export async function getAllBookingsHandler(req: Request, res: Response) {
           date: booking.bookingDate.toISOString().split("T")[0],
           startTime: booking.startTime,
           endTime: booking.endTime,
-          status: booking.status
+          status: booking.status,
+          isGuestBooking: Boolean(booking.isGuestBooking)
         };
       }
       const serviceInfo = await findServicesByIds(booking.serviceIds || []);
@@ -972,45 +1069,64 @@ export async function getAllBookingsHandler(req: Request, res: Response) {
         date: booking.bookingDate.toISOString().split("T")[0],
         startTime: booking.startTime,
         endTime: booking.endTime,
-        status: booking.status
+        status: booking.status,
+        isGuestBooking: Boolean(booking.isGuestBooking)
       };
     })
   );
 
+  const responseData = {
+    items: finalBookings,
+    currentPage: page,
+    limit,
+    totalItems: totalBookings,
+    totalPages: Math.ceil(totalBookings / limit),
+    hasNext
+  };
+
+  appCache.set(cacheKey, responseData);
+
   return SendResponse.success({
     res,
     message: "All bookings retrieved successfully",
-    data: {
-      items: finalBookings,
-      currentPage: page,
-      limit,
-      totalItems: totalBookings,
-      totalPages: Math.ceil(totalBookings / limit),
-      hasNext
-    }
+    data: responseData
   });
 }
 
 export async function getBookingShortStatsHandler(req: Request, res: Response) {
   // const functionName = getTopSectionBookingStatsHandler.name;
 
+  const cacheKey = "booking_short_stats";
+  const cachedData = appCache.get(cacheKey);
+  if (cachedData) {
+    return SendResponse.success({
+      res,
+      message: "Booking stats retrieved successfully (cached)",
+      data: cachedData
+    });
+  }
+
   const statsRes = await findBookingStats();
+
+  const responseData = {
+    stats: {
+      total:
+        (statsRes[BookingStatus.PENDING] || 0) +
+        (statsRes[BookingStatus.CONFIRMED] || 0) +
+        (statsRes[BookingStatus.CANCELLED] || 0) +
+        (statsRes[BookingStatus.COMPLETED] || 0),
+      pending: statsRes[BookingStatus.PENDING] || 0,
+      confirmed: statsRes[BookingStatus.CONFIRMED] || 0,
+      completed: statsRes[BookingStatus.COMPLETED] || 0
+    }
+  };
+
+  appCache.set(cacheKey, responseData);
 
   return SendResponse.success({
     res,
     message: "Booking stats retrieved successfully",
-    data: {
-      stats: {
-        total:
-          (statsRes[BookingStatus.PENDING] || 0) +
-          (statsRes[BookingStatus.CONFIRMED] || 0) +
-          (statsRes[BookingStatus.CANCELLED] || 0) +
-          (statsRes[BookingStatus.COMPLETED] || 0),
-        pending: statsRes[BookingStatus.PENDING] || 0,
-        confirmed: statsRes[BookingStatus.CONFIRMED] || 0,
-        completed: statsRes[BookingStatus.COMPLETED] || 0
-      }
-    }
+    data: responseData
   });
 }
 
@@ -1040,6 +1156,7 @@ export async function bulkMarkBookingsAsCompletedHandler(req: Request, res: Resp
 
     booking.status = BookingStatus.COMPLETED;
     await booking.save();
+    invalidateBookingCaches(booking._id.toString());
   }
 
   return SendResponse.success({
@@ -1054,6 +1171,16 @@ export async function bulkMarkBookingsAsCompletedHandler(req: Request, res: Resp
 export async function getSingleBookingHandler(req: Request, res: Response) {
   const functionName = getSingleBookingHandler.name;
   const { bookingId } = req.params;
+
+  const cacheKey = `booking_single_${bookingId}`;
+  const cachedData = appCache.get(cacheKey);
+  if (cachedData) {
+    return SendResponse.success({
+      res,
+      message: "Booking retrieved successfully (cached)",
+      data: cachedData
+    });
+  }
 
   const booking = await findBookingById(bookingId);
   if (!booking) {
@@ -1132,8 +1259,12 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
       date: booking.bookingDate.toISOString().split("T")[0],
       startTime: booking.startTime,
       endTime: booking.endTime,
-      status: booking.status
+      status: booking.status,
+      isGuestBooking: Boolean(booking.isGuestBooking),
+      receiptKey: booking.receiptKey ?? null
     };
+
+    appCache.set(cacheKey, { booking: formattedBooking });
 
     return SendResponse.success({
       res,
@@ -1200,8 +1331,12 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
     date: booking.bookingDate.toISOString().split("T")[0],
     startTime: booking.startTime,
     endTime: booking.endTime,
-    status: booking.status
+    status: booking.status,
+    isGuestBooking: Boolean(booking.isGuestBooking),
+    receiptKey: booking.receiptKey ?? null
   };
+
+  appCache.set(cacheKey, { booking: formattedBooking });
 
   return SendResponse.success({
     res,
@@ -1215,6 +1350,16 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
 export async function getPublicSingleBookingHandler(req: Request, res: Response) {
   const functionName = getPublicSingleBookingHandler.name;
   const { bookingId } = req.params;
+
+  const cacheKey = `booking_public_single_${bookingId}`;
+  const cachedData = appCache.get(cacheKey);
+  if (cachedData) {
+    return SendResponse.success({
+      res,
+      message: "Booking retrieved successfully (cached)",
+      data: cachedData
+    });
+  }
 
   const booking = await findBookingById(bookingId);
   if (!booking) {
@@ -1281,8 +1426,11 @@ export async function getPublicSingleBookingHandler(req: Request, res: Response)
       date: booking.bookingDate.toISOString().split("T")[0],
       startTime: booking.startTime,
       endTime: booking.endTime,
-      status: booking.status
+      status: booking.status,
+      receiptKey: booking.receiptKey ?? null
     };
+
+    appCache.set(cacheKey, { booking: formattedBooking });
 
     return SendResponse.success({
       res,
@@ -1342,8 +1490,11 @@ export async function getPublicSingleBookingHandler(req: Request, res: Response)
     date: booking.bookingDate.toISOString().split("T")[0],
     startTime: booking.startTime,
     endTime: booking.endTime,
-    status: booking.status
+    status: booking.status,
+    receiptKey: booking.receiptKey ?? null
   };
+
+  appCache.set(cacheKey, { booking: formattedBooking });
 
   return SendResponse.success({
     res,
@@ -1433,35 +1584,36 @@ export async function updateBookingHandler(
     });
   }
 
-  // recalculate total price
-  const servicesForBooking = await findServicesByIds(booking.serviceIds || []);
-  if (servicesForBooking.length === 0) {
-    return SendErrorResponse.notFound({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "No services found for booking",
-        DATA_NOT_FOUND,
-        "No services found for booking"
-      )
-    });
+  // recalculate total price based on NEW data
+  let updatedTotalPrice = 0;
+  const comboToUse = data.combo || booking.comboId;
+  const servicesToUse = data.services || booking.serviceIds || [];
+
+  if (data.combo) {
+    const comboService = await findComboById(data.combo);
+    if (!comboService) {
+      return SendErrorResponse.notFound({
+        res,
+        ...buildErrorPayload(req.originalUrl, functionName, req.method, "Combo not found", DATA_NOT_FOUND, "Combo not found")
+      });
+    }
+    updatedTotalPrice = comboService.price;
+  } else if (data.services && data.services.length > 0) {
+    const servicesForBooking = await findServicesByIds(data.services);
+    if (servicesForBooking.length === 0 || data.services.length !== servicesForBooking.length) {
+      return SendErrorResponse.notFound({
+        res,
+        ...buildErrorPayload(req.originalUrl, functionName, req.method, "Some services not found", DATA_NOT_FOUND, "Some services not found")
+      });
+    }
+    updatedTotalPrice = servicesForBooking.reduce((sum, service) => sum + service.price, 0);
+  } else if (comboToUse) {
+    const comboService = await findComboById(comboToUse);
+    updatedTotalPrice = comboService ? comboService.price : booking.totalPrice;
+  } else {
+    const servicesForBooking = await findServicesByIds(servicesToUse);
+    updatedTotalPrice = servicesForBooking.reduce((sum, service) => sum + service.price, 0);
   }
-  if (booking.serviceIds && booking.serviceIds.length !== servicesForBooking.length) {
-    return SendErrorResponse.notFound({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "Some services not found",
-        DATA_NOT_FOUND,
-        "Some services not found"
-      )
-    });
-  }
-  const updatedTotalPrice = servicesForBooking.reduce((sum, service) => sum + service.price, 0);
 
   // check slot availability
   if (
@@ -1471,7 +1623,9 @@ export async function updateBookingHandler(
   ) {
     const requestDate = new Date(data.date as string);
     const existingBookings = await findBookingsByBranchAndDate(data.branchId as string, requestDate);
-    if (!isSlotAvailable(data.date, data.startTime, data.endTime, existingBookings)) {
+    // filter out the current booking to avoid self-conflict
+    const otherBookings = existingBookings.filter(b => b._id.toString() !== bookingId);
+    if (!isSlotAvailable(data.date, data.startTime, data.endTime, otherBookings)) {
       return SendErrorResponse.conflict({
         res,
         ...buildErrorPayload(
@@ -1537,14 +1691,21 @@ export async function updateBookingHandler(
     }
     customer.firstName = data.customerInfo.firstName || customer.firstName;
     customer.lastName = data.customerInfo.lastName || customer.lastName;
-    // customer.email = data.customerInfo.email || customer.email;
-    // customer.phone = {
-    //   countryCode: data.customerInfo.phone.countryCode || customer.phone.countryCode,
-    //   number: data.customerInfo.phone.number || customer.phone.number
-    // };
+    if (data.customerInfo.email) {
+      customer.email = data.customerInfo.email;
+    }
+    if (data.customerInfo.phone) {
+      customer.phone = {
+        countryCode: data.customerInfo.phone.countryCode || customer.phone?.countryCode || '',
+        number: data.customerInfo.phone.number || customer.phone?.number || '',
+        e164: `+${data.customerInfo.phone.countryCode || customer.phone?.countryCode || ''}${data.customerInfo.phone.number || customer.phone?.number || ''}`
+      };
+    }
     customer.description = data.customerInfo.specialNotes || customer.description || "";
     await customer.save();
   }
+
+  invalidateBookingCaches(booking._id.toString());
 
   return SendResponse.success({
     res,

@@ -62,6 +62,14 @@ export class Branch {
   @Prop({ required: false, type: String, default: null })
   establishedYear?: string | null;
 
+  // Per-branch Google "write a review" deep link (e.g. https://g.page/r/XXXX/review)
+  @Prop({ required: false, type: String, default: null })
+  googleReviewLink?: string | null;
+
+  // Google Business Profile location resource (e.g. "locations/123") used to sync reviews.
+  @Prop({ required: false, type: String, default: null })
+  googleLocationId?: string | null;
+
   @Prop({ required: false, type: Number, default: 0 })
   rating?: number;
 

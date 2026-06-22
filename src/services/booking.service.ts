@@ -1,7 +1,37 @@
-import { Types } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import { customAlphabet } from "nanoid";
 import { Booking, BookingModel } from "../model";
 import { BookingStatus } from "../constants";
+
+export interface BookingListFilter {
+  status?: string;
+  branchId?: string;
+  /** customer _ids resolved from a free-text search term */
+  customerIds?: string[];
+  /** raw search term, matched against the booking shortId */
+  search?: string;
+}
+
+function buildBookingListQuery(filter: BookingListFilter = {}): FilterQuery<Booking> {
+  const query: FilterQuery<Booking> = {};
+
+  if (filter.status) query.status = filter.status;
+  if (filter.branchId) query.branchId = filter.branchId;
+
+  if (filter.search || (filter.customerIds && filter.customerIds.length > 0)) {
+    const or: FilterQuery<Booking>[] = [];
+    if (filter.search) {
+      const safe = filter.search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      or.push({ shortId: { $regex: safe, $options: "i" } });
+    }
+    if (filter.customerIds && filter.customerIds.length > 0) {
+      or.push({ customerId: { $in: filter.customerIds } });
+    }
+    if (or.length > 0) query.$or = or;
+  }
+
+  return query;
+}
 
 export function createBooking(data: Booking) {
   return BookingModel.create(data);
@@ -28,13 +58,13 @@ export function findBookingById(bookingId: string) {
   return BookingModel.findById(bookingId);
 }
 
-export function findAllBookingsPaginated(page: number, limit: number) {
+export function findAllBookingsPaginated(page: number, limit: number, filter: BookingListFilter = {}) {
   const skip = (page - 1) * limit;
-  return BookingModel.find().skip(skip).limit(limit).sort({ createdAt: -1 }).lean();
+  return BookingModel.find(buildBookingListQuery(filter)).skip(skip).limit(limit).sort({ createdAt: -1 }).lean();
 }
 
-export function countAllBookings() {
-  return BookingModel.countDocuments({});
+export function countAllBookings(filter: BookingListFilter = {}) {
+  return BookingModel.countDocuments(buildBookingListQuery(filter));
 }
 
 // group by status and count and return as object as, { pending: 10, confirmed: 5, cancelled: 2  }

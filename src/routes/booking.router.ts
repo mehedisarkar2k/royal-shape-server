@@ -29,8 +29,21 @@ router.post(
   validateResource(requestBookingSchema),
   asyncWrapper(manualCreateBookingHandler)
 );
-router.put("/confirm", requireUser, validateResource(confirmBookingSchema), asyncWrapper(confirmBookingHandler));
-router.put("/cancel", requireUser, validateResource(confirmBookingSchema), asyncWrapper(cancelBookingHandler));
+router.put(
+  "/confirm",
+  requireUser,
+  requireRole("admin"),
+  validateResource(confirmBookingSchema),
+  asyncWrapper(confirmBookingHandler)
+);
+router.put(
+  "/cancel",
+  requireUser,
+  requireRole("admin"),
+  validateResource(confirmBookingSchema),
+  asyncWrapper(cancelBookingHandler)
+);
+// Customer-scoped: ownership + 24h rule enforced inside the handler (no admin role)
 router.put(
   "/customer/cancel",
   requireUser,
@@ -40,21 +53,24 @@ router.put(
 router.put(
   "/mark-completed",
   requireUser,
+  requireRole("admin"),
   validateResource(confirmBookingSchema),
   asyncWrapper(markBookingAsCompletedHandler)
 );
-router.get("/all", requireUser, asyncWrapper(getAllBookingsHandler));
-router.get("/short-stats", requireUser, asyncWrapper(getBookingShortStatsHandler));
+router.get("/all", requireUser, requireRole("admin"), asyncWrapper(getAllBookingsHandler));
+router.get("/short-stats", requireUser, requireRole("admin"), asyncWrapper(getBookingShortStatsHandler));
 router.put(
   "/bulk-mark-completed",
   requireUser,
+  requireRole("admin"),
   validateResource(bulkMarkBookingsSchema),
   asyncWrapper(bulkMarkBookingsAsCompletedHandler)
 );
-router.get("/single/:bookingId", requireUser, asyncWrapper(getSingleBookingHandler));
+router.get("/single/:bookingId", requireUser, requireRole("admin"), asyncWrapper(getSingleBookingHandler));
 router.put(
   "/update/:bookingId",
   requireUser,
+  requireRole("admin"),
   validateResource(updateBookingSchema),
   asyncWrapper(updateBookingHandler)
 );

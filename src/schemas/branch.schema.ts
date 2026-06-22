@@ -30,6 +30,8 @@ export const createBranchSchema = object({
     }),
     establishedYear: string().optional().nullable(),
     description: string().optional().nullable(),
+    googleReviewLink: string().url("Invalid Google review link URL").optional().nullable(),
+    googleLocationId: string().optional().nullable(),
     latitude: number({ required_error: "Latitude is required!" }),
     longitude: number({ required_error: "Longitude is required!" })
   })

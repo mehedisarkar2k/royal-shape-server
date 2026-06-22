@@ -25,7 +25,7 @@ class EmailServiceManager {
    */
   loadTemplate(templateName: string, data: Record<string, unknown>): string {
     try {
-      const templatePath = path.join(__dirname, "..", "..", "templates", `${templateName}.html`);
+      const templatePath = path.join(__dirname, "..", "..", "templates", `${templateName}.template.html`);
       let template = fs.readFileSync(templatePath, "utf8");
 
       const entries = Object.entries(data);

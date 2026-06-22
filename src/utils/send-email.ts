@@ -95,6 +95,49 @@ export const sendBookingConfirmationEmail = async (data: {
   await sendEmail(data.customerEmail, subject, html);
 };
 
+export const sendBookingCancellationEmail = async (data: {
+  bookingId: string;
+  service: string;
+  date: string;
+  time: string;
+  customerName: string;
+  customerEmail: string;
+  companyName: string;
+  supportEmail: string;
+  supportPhone: string;
+}) => {
+  const subject = `Booking cancelled: ${data.companyName}`;
+  const copyRightYear = format(new Date(), "yyyy");
+  const html = EmailService.loadTemplate("booking-cancelled", {
+    ...data,
+    copyRightYear
+  });
+
+  await sendEmail(data.customerEmail, subject, html);
+};
+
+export const sendBookingUpdateEmail = async (data: {
+  bookingId: string;
+  service: string;
+  date: string;
+  time: string;
+  amount: string;
+  customerName: string;
+  customerEmail: string;
+  companyName: string;
+  supportEmail: string;
+  supportPhone: string;
+}) => {
+  const subject = `Booking updated: ${data.companyName}`;
+  const copyRightYear = format(new Date(), "yyyy");
+  const html = EmailService.loadTemplate("booking-updated", {
+    ...data,
+    copyRightYear
+  });
+
+  await sendEmail(data.customerEmail, subject, html);
+};
+
 export const sendReviewRequestEmail = async (
   to: string,
   companyName: string,

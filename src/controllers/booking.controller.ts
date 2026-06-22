@@ -14,6 +14,8 @@ import {
   logger,
   sendBookingRequestSubmissionEmailToAdmin,
   sendBookingConfirmationEmail,
+  sendBookingCancellationEmail,
+  sendBookingUpdateEmail,
   appCache,
   clearCacheByPrefix
 } from "../utils";
@@ -41,7 +43,7 @@ import {
   UNEXPECTED_ERROR,
   UserType
 } from "../constants";
-import { createCustomer, findCustomerByEmail, findCustomerById } from "../services/customer.service";
+import { createCustomer, findCustomerByEmail, findCustomerById, findCustomerIdsBySearch } from "../services/customer.service";
 import { findComboById } from "../services";
 import { BusinessInfoModel } from "../model";
 import { generateAndUploadReceipt } from "../services/receipt.service";
@@ -883,6 +885,62 @@ export async function confirmBookingHandler(
   });
 }
 
+type BookingForEmail = {
+  shortId: string;
+  serviceType: string;
+  comboId?: string | null;
+  serviceIds?: string[] | null;
+  bookingDate: Date;
+  startTime: string;
+  totalPrice: number;
+  customerId: string;
+  branchId: string;
+};
+
+// Notifies the customer by email when their booking is cancelled or updated.
+// Best-effort: never throws (failures are logged so the request still succeeds).
+async function sendBookingChangeEmail(booking: BookingForEmail, kind: "cancelled" | "updated") {
+  try {
+    const customer = await findCustomerById(booking.customerId);
+    if (!customer?.email) return;
+
+    const branch = await findBranchById(booking.branchId);
+    if (!branch) return;
+
+    const businessInfo = await BusinessInfoModel.findOne({});
+    const companyName = businessInfo?.name || "Royal Threading & Beauty";
+
+    let service = "";
+    if (booking.serviceType === BookingServiceType.COMBO && booking.comboId) {
+      const comboService = await findComboById(booking.comboId);
+      service = comboService ? comboService.name : "N/A";
+    } else {
+      const serviceDocs = await findServicesByIds(booking.serviceIds || []);
+      service = serviceDocs.map((s) => s.name).join(", ");
+    }
+
+    const common = {
+      bookingId: booking.shortId,
+      service,
+      date: booking.bookingDate.toISOString().split("T")[0],
+      time: booking.startTime,
+      customerName: `${customer.firstName} ${customer.lastName}`.trim(),
+      customerEmail: customer.email,
+      companyName,
+      supportEmail: branch.email,
+      supportPhone: branch.phone.e164
+    };
+
+    if (kind === "cancelled") {
+      await sendBookingCancellationEmail(common);
+    } else {
+      await sendBookingUpdateEmail({ ...common, amount: `AUD ${booking.totalPrice}` });
+    }
+  } catch (error) {
+    logger.error(`Failed to send booking ${kind} email: ${(error as Error).message}`);
+  }
+}
+
 export async function cancelBookingHandler(
   req: Request<Record<string, never>, Record<string, never>, ConfirmBookingType>,
   res: Response
@@ -921,6 +979,8 @@ export async function cancelBookingHandler(
 
   booking.status = BookingStatus.CANCELLED;
   await booking.save();
+
+  await sendBookingChangeEmail(booking, "cancelled");
 
   invalidateBookingCaches(booking._id.toString());
 
@@ -1036,6 +1096,8 @@ export async function cancelOwnBookingHandler(
   booking.status = BookingStatus.CANCELLED;
   await booking.save();
 
+  await sendBookingChangeEmail(booking, "cancelled");
+
   invalidateBookingCaches(booking._id.toString());
 
   return SendResponse.success({
@@ -1103,10 +1165,20 @@ export async function getAllBookingsHandler(req: Request, res: Response) {
   const page = parseInt((req.query.page as string) || "1", 10);
   const limit = parseInt((req.query.limit as string) || "10", 10);
 
-  const cacheKey = `bookings_all_page_${page}_limit_${limit}`;
+  const status = (req.query.status as string)?.trim() || undefined;
+  const branchId = (req.query.branchId as string)?.trim() || undefined;
+  const search = (req.query.search as string)?.trim() || undefined;
 
-  const bookings = await findAllBookingsPaginated(page, limit);
-  const totalBookings = await countAllBookings();
+  // Resolve the free-text search against customers so name/email/phone matches work,
+  // not just the booking shortId.
+  const customerIds = search ? await findCustomerIdsBySearch(search) : undefined;
+
+  const filter = { status, branchId, search, customerIds };
+
+  const cacheKey = `bookings_all_page_${page}_limit_${limit}_${status || ""}_${branchId || ""}_${search || ""}`;
+
+  const bookings = await findAllBookingsPaginated(page, limit, filter);
+  const totalBookings = await countAllBookings(filter);
 
   const hasNext = page * limit < totalBookings;
 
@@ -1341,34 +1413,10 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
     });
   }
 
+  // Be resilient if the referenced services/category were deleted: show placeholders
+  // instead of failing the whole booking view.
   const serviceInfo = await findServicesByIds(booking.serviceIds || []);
-  if (serviceInfo.length === 0) {
-    return SendErrorResponse.internalServer({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "Failed to retrieve booking details",
-        UNEXPECTED_ERROR,
-        "Failed to retrieve booking details"
-      )
-    });
-  }
-  const serviceCategory = await findServiceCategoryById(serviceInfo[0].categoryId);
-  if (!serviceCategory) {
-    return SendErrorResponse.internalServer({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "Service category not found while retrieving booking details",
-        DATA_NOT_FOUND,
-        "Service category not found while retrieving booking details"
-      )
-    });
-  }
+  const serviceCategory = serviceInfo.length > 0 ? await findServiceCategoryById(serviceInfo[0].categoryId) : null;
 
   const formattedBooking = {
     id: booking._id.toString(),
@@ -1386,13 +1434,16 @@ export async function getSingleBookingHandler(req: Request, res: Response) {
       description: customerInfo.description || ""
     },
     category: {
-      id: serviceCategory._id.toString(),
-      name: serviceCategory.name
+      id: serviceCategory ? serviceCategory._id.toString() : "N/A",
+      name: serviceCategory ? serviceCategory.name : "N/A"
     },
-    services: serviceInfo.map((service) => ({
-      id: service._id.toString(),
-      name: service.name
-    })),
+    services:
+      serviceInfo.length > 0
+        ? serviceInfo.map((service) => ({
+            id: service._id.toString(),
+            name: service.name
+          }))
+        : [{ id: "N/A", name: "Deleted Service(s)" }],
     price: booking.totalPrice,
     date: booking.bookingDate.toISOString().split("T")[0],
     startTime: booking.startTime,
@@ -1728,6 +1779,12 @@ export async function updateBookingHandler(
     customer.description = data.customerInfo.specialNotes || customer.description || "";
     await customer.save();
   }
+
+  // Notify the customer of the change (a cancellation via edit gets the cancel email).
+  await sendBookingChangeEmail(
+    booking,
+    booking.status === BookingStatus.CANCELLED ? "cancelled" : "updated"
+  );
 
   invalidateBookingCaches(booking._id.toString());
 

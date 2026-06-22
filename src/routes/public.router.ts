@@ -19,7 +19,8 @@ import {
   getWebsiteServicesPageDataHandler,
   getWebsiteSingleServicePageDataHandler,
   submitReviewPublicHandler,
-  uploadJobDocumentHandler
+  uploadJobDocumentHandler,
+  getPublicGoogleReviewsHandler
 } from "../controllers";
 import { asyncWrapper } from "../utils";
 import { validateResource } from "../middleware";
@@ -54,5 +55,6 @@ router.get("/website/blog/categories-and-tags", asyncWrapper(getBlogCategoriesAn
 router.get("/website/blog/all", asyncWrapper(getAllPublishedBlogsHandler));
 router.get("/website/blog/single/:blogId", asyncWrapper(getSinglePublishedBlogHandler));
 router.post("/submit-review", validateResource(submitReviewSchema), asyncWrapper(submitReviewPublicHandler));
+router.get("/google-reviews", asyncWrapper(getPublicGoogleReviewsHandler));
 
 export default router;

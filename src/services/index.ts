@@ -11,3 +11,4 @@ export * from "./career.service";
 export * from "./combo.service";
 export * from "./award.service";
 export * from "./cron.service";
+export * from "./google-review.service";

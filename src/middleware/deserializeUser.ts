@@ -133,6 +133,29 @@ export const deserializeUser = async (req: Request, res: Response, next: NextFun
     // console.log(error.message);
     logger.error(`Error from Authorization Catch: ${error.message}`);
 
+    // Firebase token failures (expired / revoked / invalid) are an AUTH problem,
+    // not a server fault — return 401 so the client cleanly prompts a re-login
+    // instead of showing a scary "server error".
+    const authErrorCode = typeof error?.code === "string" ? error.code : "";
+    if (authErrorCode.startsWith("auth/")) {
+      SendErrorResponse.unauthorized({
+        res,
+        message: "Your session has expired. Please log in again.",
+        data: {
+          clientError: {
+            ...UNAUTHORIZED_ERROR,
+            message: "Your session has expired. Please log in again."
+          },
+          endpoint: req.originalUrl,
+          method: req.method.toUpperCase(),
+          service: ApplicationServices.MIDDLEWARE,
+          functionName,
+          id: uuid()
+        }
+      });
+      return;
+    }
+
     // TODO: capture error in DB
 
     SendErrorResponse.internalServer({

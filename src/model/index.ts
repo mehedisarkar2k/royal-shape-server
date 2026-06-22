@@ -17,3 +17,4 @@ export * from "./promotion.model";
 export * from "./combo.model";
 export * from "./award.model";
 export * from "./admin-settings.model";
+export * from "./google-review.model";

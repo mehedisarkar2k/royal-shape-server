@@ -5,6 +5,7 @@ import { AdminSettingsModel } from "../model";
 import { EmailService } from "./email/email.service";
 import { logger } from "../utils/logger";
 import { BookingStatus } from "../constants";
+import { syncGoogleReviews } from "./google-review.service";
 
 export class CronService {
   /**
@@ -18,6 +19,27 @@ export class CronService {
       logger.info("Running Booking Reminder Cron Job");
       await this.processReminders();
     });
+
+    // Sync Google reviews once daily at 03:00 Australian time (lowest server load).
+    cron.schedule(
+      "0 3 * * *",
+      async () => {
+        logger.info("Running Google Reviews Sync Cron Job");
+        await this.processGoogleReviewsSync();
+      },
+      { timezone: "Australia/Sydney" }
+    );
+  }
+
+  static async processGoogleReviewsSync() {
+    try {
+      const summary = await syncGoogleReviews();
+      const total = summary.reduce((sum, b) => sum + b.synced, 0);
+      logger.info(`Google reviews sync complete: ${total} reviews across ${summary.length} branch(es).`);
+    } catch (error) {
+      // Until the Business Profile API access is approved this will 429 — log and move on.
+      logger.error(`Google reviews sync failed: ${(error as Error).message}`);
+    }
   }
 
   static async processReminders() {
@@ -95,7 +117,7 @@ export class CronService {
           copyRightYear: format(new Date(), "yyyy")
         });
         await EmailService.sendEmail({ to: customer.email as string, subject, html });
-      } catch (e) {
+      } catch {
         // Fallback if template is missing
         const html = `<p>Hi ${customer.firstName || "Valued Customer"},</p><p>This is a reminder that your appointment is in ${timeframe}.</p>`;
         await EmailService.sendEmail({ to: customer.email as string, subject, html });

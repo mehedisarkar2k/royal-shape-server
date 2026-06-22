@@ -12,7 +12,14 @@ import {
   getAllPublicCustomerReviewsHandler,
   markContactSubmissionReadUnreadHandler,
   submitReviewHandler,
-  toggleReviewStatusHandler
+  toggleReviewStatusHandler,
+  syncGoogleReviewsHandler,
+  listGoogleLocationsHandler,
+  getAllGoogleReviewsHandler,
+  toggleGoogleReviewPublishHandler,
+  hideGoogleReviewHandler,
+  replyGoogleReviewHandler,
+  deleteGoogleReviewReplyHandler
 } from "../controllers";
 
 const router = Router();
@@ -52,5 +59,29 @@ router.delete(
   asyncWrapper(deleteContactSubmissionHandler)
 );
 router.post("/ask-for-review", requireUser, requireRole("admin"), asyncWrapper(askForReviewHandler));
+
+// --- Google reviews (admin) ---
+router.post("/google-reviews/sync", requireUser, requireRole("admin"), asyncWrapper(syncGoogleReviewsHandler));
+router.get("/google-reviews/locations", requireUser, requireRole("admin"), asyncWrapper(listGoogleLocationsHandler));
+router.get("/google-reviews", requireUser, requireRole("admin"), asyncWrapper(getAllGoogleReviewsHandler));
+router.put(
+  "/google-reviews/toggle-publish/:reviewId",
+  requireUser,
+  requireRole("admin"),
+  asyncWrapper(toggleGoogleReviewPublishHandler)
+);
+router.delete("/google-reviews/:reviewId", requireUser, requireRole("admin"), asyncWrapper(hideGoogleReviewHandler));
+router.put(
+  "/google-reviews/reply/:reviewId",
+  requireUser,
+  requireRole("admin"),
+  asyncWrapper(replyGoogleReviewHandler)
+);
+router.delete(
+  "/google-reviews/reply/:reviewId",
+  requireUser,
+  requireRole("admin"),
+  asyncWrapper(deleteGoogleReviewReplyHandler)
+);
 
 export default router;

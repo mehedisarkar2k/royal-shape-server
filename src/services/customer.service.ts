@@ -25,6 +25,24 @@ export async function findCustomerById(customerId: string) {
   return CustomerModel.findById(customerId);
 }
 
+// Returns the _ids (as strings) of customers matching a free-text term
+// across first/last name, email, and phone number.
+export async function findCustomerIdsBySearch(term: string): Promise<string[]> {
+  const regex = new RegExp(term.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+  const customers = await CustomerModel.find({
+    $or: [
+      { firstName: regex },
+      { lastName: regex },
+      { email: regex },
+      { "phone.number": regex },
+      { "phone.e164": regex }
+    ]
+  })
+    .select("_id")
+    .lean();
+  return customers.map((c) => c._id.toString());
+}
+
 export async function findCustomersWithBookingDetails(customerIds: string[]) {
   const pipeline: PipelineStage[] = [
     {

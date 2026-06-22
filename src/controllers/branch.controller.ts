@@ -84,6 +84,8 @@ export async function getAllBranchesHandler(req: Request, res: Response) {
         weeklySchedule: branch.weeklySchedule,
         establishedYear: branch.establishedYear,
         description: branch.description,
+        googleReviewLink: branch.googleReviewLink,
+        googleLocationId: branch.googleLocationId,
         rating: branch.rating,
         numberOfEmployees: 8, // TODO: replace with actual logic to get number of employees
         numberOfCustomers: 100, // TODO: replace with actual logic to get number of customers
@@ -141,6 +143,8 @@ export async function updateBranchHandler(
   branch.weeklySchedule = data.weeklySchedule;
   branch.establishedYear = data.establishedYear || null;
   branch.description = data.description || null;
+  branch.googleReviewLink = data.googleReviewLink || null;
+  branch.googleLocationId = data.googleLocationId || null;
   branch.latitude = data.latitude;
   branch.longitude = data.longitude;
 
@@ -211,6 +215,8 @@ export async function getBranchByIdHandler(req: Request<{ id: string }>, res: Re
         weeklySchedule: branch.weeklySchedule,
         establishedYear: branch.establishedYear,
         description: branch.description,
+        googleReviewLink: branch.googleReviewLink,
+        googleLocationId: branch.googleLocationId,
         rating: branch.rating,
         latitude: branch.latitude,
         longitude: branch.longitude

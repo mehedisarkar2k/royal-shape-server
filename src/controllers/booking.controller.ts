@@ -899,7 +899,7 @@ type BookingForEmail = {
 
 // Notifies the customer by email when their booking is cancelled or updated.
 // Best-effort: never throws (failures are logged so the request still succeeds).
-async function sendBookingChangeEmail(booking: BookingForEmail, kind: "cancelled" | "updated") {
+async function sendBookingChangeEmail(booking: BookingForEmail, kind: "cancelled" | "updated", reason?: string | null) {
   try {
     const customer = await findCustomerById(booking.customerId);
     if (!customer?.email) return;
@@ -932,7 +932,7 @@ async function sendBookingChangeEmail(booking: BookingForEmail, kind: "cancelled
     };
 
     if (kind === "cancelled") {
-      await sendBookingCancellationEmail(common);
+      await sendBookingCancellationEmail({ ...common, reason });
     } else {
       await sendBookingUpdateEmail({ ...common, amount: `AUD ${booking.totalPrice}` });
     }
@@ -947,6 +947,8 @@ export async function cancelBookingHandler(
 ) {
   const functionName = cancelBookingHandler.name;
   const { bookingId } = req.body;
+  // Optional admin-provided reason (not part of confirmBookingSchema; read directly).
+  const reason = (req.body as { reason?: string }).reason?.trim() || null;
 
   const booking = await findBookingById(bookingId);
   if (!booking) {
@@ -978,9 +980,10 @@ export async function cancelBookingHandler(
   }
 
   booking.status = BookingStatus.CANCELLED;
+  booking.cancellationReason = reason;
   await booking.save();
 
-  await sendBookingChangeEmail(booking, "cancelled");
+  await sendBookingChangeEmail(booking, "cancelled", reason);
 
   invalidateBookingCaches(booking._id.toString());
 

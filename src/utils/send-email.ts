@@ -105,11 +105,17 @@ export const sendBookingCancellationEmail = async (data: {
   companyName: string;
   supportEmail: string;
   supportPhone: string;
+  reason?: string | null;
 }) => {
   const subject = `Booking cancelled: ${data.companyName}`;
   const copyRightYear = format(new Date(), "yyyy");
+  // Only render the reason block when a reason was provided.
+  const reasonBlock = data.reason
+    ? `<tr><td style="padding: 14px 16px; font-size: 14px; color: #da1f5c; font-weight: 600; width: 36%; border-top: 1px solid #f3f4f6">Reason</td><td style="padding: 14px 16px; font-size: 14px; color: #374151; border-top: 1px solid #f3f4f6">${data.reason}</td></tr>`
+    : "";
   const html = EmailService.loadTemplate("booking-cancelled", {
     ...data,
+    reasonBlock,
     copyRightYear
   });
 

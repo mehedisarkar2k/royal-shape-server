@@ -12,7 +12,8 @@ import {
   findServicesByIds,
   findComboById,
   findUserById,
-  countCustomerBookings
+  countCustomerBookings,
+  findBranchById
 } from "../services";
 import { SendErrorResponse, SendResponse } from "../utils";
 import {
@@ -319,11 +320,22 @@ export async function getCustomerBookingHistoryHandler(req: Request, res: Respon
         const combo = await findComboById(booking.comboId as string);
         serviceNames = combo?.name || "Combo Service";
       }
+
+      const branch = await findBranchById(booking.branchId);
+      const branchAddress = branch
+        ? `${branch.address.addressLine1}, ${branch.address.city || ""} ${branch.address.state || ""} ${branch.address.zipCode || ""}`
+            .replace(/\s+/g, " ")
+            .trim()
+        : null;
+
       return {
         id: booking._id.toString(),
         shortId: booking.shortId,
         branchId: booking.branchId,
         branchName: booking.branchName,
+        branchAddress,
+        branchLatitude: branch?.latitude ?? null,
+        branchLongitude: branch?.longitude ?? null,
         service: serviceNames,
         price: booking.totalPrice,
         date: booking.bookingDate.toISOString().split("T")[0],

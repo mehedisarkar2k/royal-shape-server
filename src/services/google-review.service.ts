@@ -73,6 +73,35 @@ export async function listGoogleLocations(): Promise<Array<{ name: string; title
   return (data.locations || []).map((l) => ({ name: l.name, title: l.title || "" }));
 }
 
+/**
+ * Auto-assign each branch's `googleLocationId` by matching the Google location
+ * title against the branch name (case-insensitive containment). Saves matches
+ * and returns a summary so the admin doesn't have to paste IDs by hand.
+ */
+export async function autoMapBranchLocations(): Promise<
+  { branchId: string; branchName: string; locationId: string }[]
+> {
+  const locations = await listGoogleLocations();
+  const branches = await BranchModel.find({});
+  const mapped: { branchId: string; branchName: string; locationId: string }[] = [];
+
+  for (const branch of branches) {
+    const bn = branch.name.toLowerCase().trim();
+    const match = locations.find((l) => {
+      const t = l.title.toLowerCase().trim();
+      return t === bn || t.includes(bn) || bn.includes(t);
+    });
+    if (match) {
+      branch.googleLocationId = match.name;
+      // eslint-disable-next-line no-await-in-loop
+      await branch.save();
+      mapped.push({ branchId: branch._id.toString(), branchName: branch.name, locationId: match.name });
+    }
+  }
+
+  return mapped;
+}
+
 async function listReviewsForLocation(accountName: string, locationName: string): Promise<GoogleReviewApiItem[]> {
   const reviews: GoogleReviewApiItem[] = [];
   let pageToken: string | undefined;

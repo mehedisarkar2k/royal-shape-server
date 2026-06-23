@@ -45,6 +45,10 @@ export class Booking {
   @Prop({ required: true, type: String, enum: BookingStatus })
   status: BookingStatus;
 
+  // Reason the admin gave when cancelling/rejecting; shown to the customer.
+  @Prop({ required: false, type: String, default: null })
+  cancellationReason?: string | null;
+
   @Prop({ required: false, type: Boolean, default: false })
   isGuestBooking?: boolean;
 

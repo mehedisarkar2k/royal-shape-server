@@ -15,6 +15,7 @@ import {
   toggleReviewStatusHandler,
   syncGoogleReviewsHandler,
   listGoogleLocationsHandler,
+  autoMapBranchLocationsHandler,
   getAllGoogleReviewsHandler,
   toggleGoogleReviewPublishHandler,
   hideGoogleReviewHandler,
@@ -63,6 +64,12 @@ router.post("/ask-for-review", requireUser, requireRole("admin"), asyncWrapper(a
 // --- Google reviews (admin) ---
 router.post("/google-reviews/sync", requireUser, requireRole("admin"), asyncWrapper(syncGoogleReviewsHandler));
 router.get("/google-reviews/locations", requireUser, requireRole("admin"), asyncWrapper(listGoogleLocationsHandler));
+router.post(
+  "/google-reviews/auto-map-locations",
+  requireUser,
+  requireRole("admin"),
+  asyncWrapper(autoMapBranchLocationsHandler)
+);
 router.get("/google-reviews", requireUser, requireRole("admin"), asyncWrapper(getAllGoogleReviewsHandler));
 router.put(
   "/google-reviews/toggle-publish/:reviewId",

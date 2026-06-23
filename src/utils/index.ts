@@ -6,6 +6,7 @@ export * from "./privateDataFilter";
 export { default as asyncWrapper } from "./async-warpper";
 export { default as multerUpload } from "./multer";
 export * from "./send-email";
+export * from "./send-sms";
 export * from "./datetime-helper";
 export * from "./slot-calculator";
 export * from "./cache";

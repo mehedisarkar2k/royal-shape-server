@@ -4,7 +4,13 @@ import { ApplicationServices, DATA_NOT_FOUND, UNEXPECTED_ERROR } from "../consta
 import { SendErrorResponse, SendResponse } from "../utils";
 import { DocumentType } from "@typegoose/typegoose";
 import { GoogleReview, GoogleReviewModel } from "../model";
-import { deleteGoogleReviewReply, listGoogleLocations, replyToGoogleReview, syncGoogleReviews } from "../services";
+import {
+  autoMapBranchLocations,
+  deleteGoogleReviewReply,
+  listGoogleLocations,
+  replyToGoogleReview,
+  syncGoogleReviews
+} from "../services";
 
 const buildErrorPayload = (
   endpoint: string,
@@ -73,6 +79,27 @@ export async function listGoogleLocationsHandler(req: Request, res: Response) {
         functionName,
         req.method,
         "Failed to fetch Google locations",
+        UNEXPECTED_ERROR,
+        (error as Error).message
+      )
+    });
+  }
+}
+
+/** Admin: auto-assign branch googleLocationId by matching Google location titles. */
+export async function autoMapBranchLocationsHandler(req: Request, res: Response) {
+  const functionName = autoMapBranchLocationsHandler.name;
+  try {
+    const mapped = await autoMapBranchLocations();
+    return SendResponse.success({ res, message: "Branches mapped to Google locations", data: { mapped } });
+  } catch (error) {
+    return SendErrorResponse.internalServer({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "Failed to auto-map locations",
         UNEXPECTED_ERROR,
         (error as Error).message
       )

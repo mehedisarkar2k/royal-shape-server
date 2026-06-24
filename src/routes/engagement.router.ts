@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireUser, requireRole, validateResource } from "../middleware";
 import { asyncWrapper } from "../utils";
-import { contactFormSubmitSchema, submitReviewSchema } from "../schemas";
+import { contactFormSubmitSchema, submitReviewSchema, sendCampaignSchema } from "../schemas";
 import {
   askForReviewHandler,
   contactFormSubmitHandler,
@@ -20,7 +20,9 @@ import {
   toggleGoogleReviewPublishHandler,
   hideGoogleReviewHandler,
   replyGoogleReviewHandler,
-  deleteGoogleReviewReplyHandler
+  deleteGoogleReviewReplyHandler,
+  getSubscribersHandler,
+  sendCampaignHandler
 } from "../controllers";
 
 const router = Router();
@@ -89,6 +91,16 @@ router.delete(
   requireUser,
   requireRole("admin"),
   asyncWrapper(deleteGoogleReviewReplyHandler)
+);
+
+// --- Newsletter (admin) ---
+router.get("/newsletter/subscribers", requireUser, requireRole("admin"), asyncWrapper(getSubscribersHandler));
+router.post(
+  "/newsletter/send",
+  requireUser,
+  requireRole("admin"),
+  validateResource(sendCampaignSchema),
+  asyncWrapper(sendCampaignHandler)
 );
 
 export default router;

@@ -60,7 +60,9 @@ export async function createComboHandler(
     duration: data.duration,
     price: data.totalPrice,
     currency: "AUD",
-    comboItems: data.comboItems
+    comboItems: data.comboItems,
+    isQuickOffering: data.isQuickOffering ?? false,
+    expiresAt: data.expiresAt ? new Date(data.expiresAt) : null
   });
   if (!combo) {
     return SendErrorResponse.internalServer({
@@ -153,6 +155,8 @@ export async function getSingleComboHandler(req: Request, res: Response) {
         duration: combo.duration,
         price: combo.price,
         comboItems: combo.comboItems,
+        isQuickOffering: combo.isQuickOffering ?? false,
+        expiresAt: combo.expiresAt ?? null,
         branches: combo.branches
       }
     }
@@ -203,6 +207,8 @@ export async function updateComboHandler(
   combo.duration = data.duration || combo.duration;
   combo.price = data.totalPrice || combo.price;
   combo.comboItems = data.comboItems || combo.comboItems;
+  if (data.isQuickOffering !== undefined) combo.isQuickOffering = data.isQuickOffering;
+  if (data.expiresAt !== undefined) combo.expiresAt = data.expiresAt ? new Date(data.expiresAt) : null;
   combo.branches =
     branches.length > 0
       ? branches.map((branch) => ({ branchId: branch._id.toString(), branchName: branch.name }))

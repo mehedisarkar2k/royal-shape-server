@@ -144,6 +144,28 @@ export const sendBookingUpdateEmail = async (data: {
   await sendEmail(data.customerEmail, subject, html);
 };
 
+export const sendAppointmentReminderEmail = async (data: {
+  service: string;
+  branchName: string;
+  date: string;
+  time: string;
+  timeframe: string;
+  customerName: string;
+  customerEmail: string;
+  companyName: string;
+  supportEmail: string;
+  supportPhone: string;
+}) => {
+  const subject = `Reminder: your appointment is in ${data.timeframe} — ${data.companyName}`;
+  const copyRightYear = format(new Date(), "yyyy");
+  const html = EmailService.loadTemplate("appointment-reminder", {
+    ...data,
+    copyRightYear
+  });
+
+  await sendEmail(data.customerEmail, subject, html);
+};
+
 export const sendReviewRequestEmail = async (
   to: string,
   companyName: string,

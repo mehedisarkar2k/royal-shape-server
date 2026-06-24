@@ -1,4 +1,4 @@
-import { array, number, object, string, TypeOf } from "zod";
+import { array, boolean, number, object, string, TypeOf } from "zod";
 
 export const createComboSchema = object({
   body: object({
@@ -13,7 +13,10 @@ export const createComboSchema = object({
     branchIds: array(string().min(1, "Each branch ID must be a valid string")).min(
       1,
       "At least one branch ID is required"
-    )
+    ),
+    // Quick / limited-time offering (optional).
+    isQuickOffering: boolean().optional(),
+    expiresAt: string().datetime().optional().nullable()
   })
 });
 export type CreateComboInput = TypeOf<typeof createComboSchema>["body"];

@@ -215,15 +215,21 @@ export async function getWebsiteHomePublicDataHandler(req: Request, res: Respons
   }));
 
   const comboServices = await findAllCombos();
-  const finalComboServices = comboServices.map((combo) => ({
-    id: combo._id.toString(),
-    name: combo.name,
-    description: combo.description,
-    price: combo.price,
-    currency: combo.currency,
-    features: combo.comboItems,
-    mostPopular: false
-  }));
+  const nowTs = Date.now();
+  const finalComboServices = comboServices
+    // Hide quick offerings whose expiry has passed.
+    .filter((combo) => !(combo.isQuickOffering && combo.expiresAt && new Date(combo.expiresAt).getTime() < nowTs))
+    .map((combo) => ({
+      id: combo._id.toString(),
+      name: combo.name,
+      description: combo.description,
+      price: combo.price,
+      currency: combo.currency,
+      features: combo.comboItems,
+      isQuickOffering: combo.isQuickOffering ?? false,
+      expiresAt: combo.expiresAt ?? null,
+      mostPopular: false
+    }));
   if (finalComboServices.length > 1) {
     finalComboServices[1].mostPopular = true;
   }
@@ -373,15 +379,21 @@ export async function getWebsiteServicesPageDataHandler(req: Request, res: Respo
   );
 
   const comboServices = await findAllCombos();
-  const finalComboServices = comboServices.map((combo) => ({
-    id: combo._id.toString(),
-    name: combo.name,
-    description: combo.description,
-    price: combo.price,
-    currency: combo.currency,
-    features: combo.comboItems,
-    mostPopular: false
-  }));
+  const nowTs = Date.now();
+  const finalComboServices = comboServices
+    // Hide quick offerings whose expiry has passed.
+    .filter((combo) => !(combo.isQuickOffering && combo.expiresAt && new Date(combo.expiresAt).getTime() < nowTs))
+    .map((combo) => ({
+      id: combo._id.toString(),
+      name: combo.name,
+      description: combo.description,
+      price: combo.price,
+      currency: combo.currency,
+      features: combo.comboItems,
+      isQuickOffering: combo.isQuickOffering ?? false,
+      expiresAt: combo.expiresAt ?? null,
+      mostPopular: false
+    }));
   if (finalComboServices.length > 1) {
     finalComboServices[1].mostPopular = true;
   }
@@ -599,15 +611,21 @@ export async function getWebsitePricingPageDataHandler(req: Request, res: Respon
   );
 
   const comboServices = await findAllCombos();
-  const finalComboServices = comboServices.map((combo) => ({
-    id: combo._id.toString(),
-    name: combo.name,
-    description: combo.description,
-    price: combo.price,
-    currency: combo.currency,
-    features: combo.comboItems,
-    mostPopular: false
-  }));
+  const nowTs = Date.now();
+  const finalComboServices = comboServices
+    // Hide quick offerings whose expiry has passed.
+    .filter((combo) => !(combo.isQuickOffering && combo.expiresAt && new Date(combo.expiresAt).getTime() < nowTs))
+    .map((combo) => ({
+      id: combo._id.toString(),
+      name: combo.name,
+      description: combo.description,
+      price: combo.price,
+      currency: combo.currency,
+      features: combo.comboItems,
+      isQuickOffering: combo.isQuickOffering ?? false,
+      expiresAt: combo.expiresAt ?? null,
+      mostPopular: false
+    }));
   if (finalComboServices.length > 1) {
     finalComboServices[1].mostPopular = true;
   }

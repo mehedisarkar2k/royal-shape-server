@@ -9,6 +9,11 @@ class ReminderSettings {
 
   @Prop({ required: true, type: Boolean, default: true })
   enable6HourReminder: boolean;
+
+  // Also send the 24-hour reminder by SMS (in addition to email). SMS is kept to
+  // the 24h mark only for cost control.
+  @Prop({ required: true, type: Boolean, default: true })
+  enable24HourSms: boolean;
 }
 
 @ModelOptions({ schemaOptions: { collection: "admin_settings", timestamps: true } })

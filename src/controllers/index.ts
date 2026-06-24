@@ -9,6 +9,7 @@ export * from "./career.controller";
 export * from "./admin.controller";
 export * from "./engagement.controller";
 export * from "./google-review.controller";
+export * from "./newsletter.controller";
 export * from "./public.controller";
 export * from "./promotion.controller";
 export * from "./blog.controller";

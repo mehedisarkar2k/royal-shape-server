@@ -16,6 +16,8 @@ import {
   sendBookingConfirmationEmail,
   sendBookingCancellationEmail,
   sendBookingUpdateEmail,
+  sendReviewRequestEmail,
+  sendSms,
   appCache,
   clearCacheByPrefix
 } from "../utils";
@@ -941,6 +943,39 @@ async function sendBookingChangeEmail(booking: BookingForEmail, kind: "cancelled
   }
 }
 
+// After a visit is completed, invite the customer to leave a review via email + SMS.
+// Prefers the branch's Google review link (boosts Google rating); falls back to the
+// on-site /write-review form. Best-effort: never throws.
+async function sendBookingSurvey(booking: BookingForEmail) {
+  try {
+    const customer = await findCustomerById(booking.customerId);
+    if (!customer) return;
+
+    const branch = await findBranchById(booking.branchId);
+    const businessInfo = await BusinessInfoModel.findOne({});
+    const companyName = businessInfo?.name || "Royal Threading & Beauty";
+    const clientBaseUrl = process.env.CLIENT_BASE_URL || "https://royalthreadingandbeauty.com.au";
+    const reviewLink = branch?.googleReviewLink || `${clientBaseUrl}/write-review`;
+
+    if (customer.email) {
+      await sendReviewRequestEmail(
+        customer.email,
+        companyName,
+        branch?.email || businessInfo?.email || "",
+        branch?.phone?.e164 || "",
+        reviewLink
+      );
+    }
+
+    if (customer.phone?.e164) {
+      const message = `Hi ${customer.firstName || ""}, thanks for visiting ${companyName}! We'd love your feedback — please leave a review: ${reviewLink}`;
+      await sendSms(customer.phone.e164, message);
+    }
+  } catch (error) {
+    logger.error(`Failed to send booking survey: ${(error as Error).message}`);
+  }
+}
+
 export async function cancelBookingHandler(
   req: Request<Record<string, never>, Record<string, never>, ConfirmBookingType>,
   res: Response
@@ -1151,6 +1186,8 @@ export async function markBookingAsCompletedHandler(
   booking.status = BookingStatus.COMPLETED;
   await booking.save();
 
+  await sendBookingSurvey(booking);
+
   invalidateBookingCaches(booking._id.toString());
 
   return SendResponse.success({
@@ -1318,6 +1355,8 @@ export async function bulkMarkBookingsAsCompletedHandler(req: Request, res: Resp
 
     booking.status = BookingStatus.COMPLETED;
     await booking.save();
+     
+    await sendBookingSurvey(booking);
     invalidateBookingCaches(booking._id.toString());
   }
 

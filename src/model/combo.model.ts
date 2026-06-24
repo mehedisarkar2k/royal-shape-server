@@ -30,6 +30,13 @@ export class Combo {
 
   @Prop({ required: true, type: [String] })
   comboItems: string[];
+
+  // Quick / limited-time offering (e.g. flash pack). Optionally auto-expires.
+  @Prop({ required: false, type: Boolean, default: false })
+  isQuickOffering?: boolean;
+
+  @Prop({ required: false, type: Date, default: null })
+  expiresAt?: Date | null;
 }
 
 export const ComboModel = getModelForClass(Combo);

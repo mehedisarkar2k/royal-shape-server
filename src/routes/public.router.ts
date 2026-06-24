@@ -20,11 +20,13 @@ import {
   getWebsiteSingleServicePageDataHandler,
   submitReviewPublicHandler,
   uploadJobDocumentHandler,
-  getPublicGoogleReviewsHandler
+  getPublicGoogleReviewsHandler,
+  subscribePublicHandler,
+  unsubscribePublicHandler
 } from "../controllers";
 import { asyncWrapper } from "../utils";
 import { validateResource } from "../middleware";
-import { applyCareerPostSchema, contactFormSubmitSchema, submitReviewSchema } from "../schemas";
+import { applyCareerPostSchema, contactFormSubmitSchema, submitReviewSchema, subscribeSchema } from "../schemas";
 import upload from "../utils/multer";
 
 const router = Router();
@@ -56,5 +58,7 @@ router.get("/website/blog/all", asyncWrapper(getAllPublishedBlogsHandler));
 router.get("/website/blog/single/:blogId", asyncWrapper(getSinglePublishedBlogHandler));
 router.post("/submit-review", validateResource(submitReviewSchema), asyncWrapper(submitReviewPublicHandler));
 router.get("/google-reviews", asyncWrapper(getPublicGoogleReviewsHandler));
+router.post("/newsletter/subscribe", validateResource(subscribeSchema), asyncWrapper(subscribePublicHandler));
+router.get("/newsletter/unsubscribe", asyncWrapper(unsubscribePublicHandler));
 
 export default router;

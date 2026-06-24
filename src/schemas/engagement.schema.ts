@@ -20,3 +20,18 @@ export const contactFormSubmitSchema = object({
   })
 });
 export type ContactFormSubmitType = TypeOf<typeof contactFormSubmitSchema>["body"];
+
+export const subscribeSchema = object({
+  body: object({
+    email: string({ required_error: "Email is required" }).email("Invalid email address")
+  })
+});
+export type SubscribeInput = TypeOf<typeof subscribeSchema>["body"];
+
+export const sendCampaignSchema = object({
+  body: object({
+    subject: string({ required_error: "Subject is required" }).min(1, "Subject is required"),
+    html: string({ required_error: "Content is required" }).min(1, "Content is required")
+  })
+});
+export type SendCampaignInput = TypeOf<typeof sendCampaignSchema>["body"];

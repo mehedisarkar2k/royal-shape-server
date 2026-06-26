@@ -80,6 +80,9 @@ services:
 
     networks:
       - royal-shape-network
+      # Shared network with the nginx reverse proxy (domain-mamangement repo)
+      # so it can reach this container by name for apidev.royalthreadingandbeauty.com.au
+      - rtb-network
 
     healthcheck:
       test:
@@ -113,3 +116,5 @@ volumes:
 networks:
   royal-shape-network:
     driver: bridge
+  rtb-network:
+    external: true

@@ -91,13 +91,30 @@ export const adminLoginHandler = async (
     });
   }
 
+  if (user.userType !== "admin") {
+    return SendErrorResponse.unauthorized({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "User is not an admin",
+        UNAUTHORIZED_ERROR,
+        "This account does not have admin access"
+      )
+    });
+  }
+
   return SendResponse.success({
     res,
     message: "User logged in successfully",
     data: {
       user: {
         id: user._id.toString(),
-        email: user.email
+        email: user.email,
+        firstName: user.firstName,
+        userType: user.userType,
+        role: user.role
       }
     }
   });

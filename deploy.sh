@@ -57,10 +57,13 @@ echo ""
 echo "Removing old images..."
 docker image prune -f
 
-# Build the Docker image
+# Pull the latest image (built by GitHub Actions, pushed to GHCR).
+# This VPS does NOT build the image itself — only ~1GB RAM, building
+# TypeScript here OOMs/thrashes the whole box. Run `docker login ghcr.io`
+# once beforehand if this repo's GHCR package is private.
 echo ""
-echo "Building Docker image..."
-docker compose build --no-cache
+echo "Pulling latest Docker image..."
+docker compose pull
 
 # Start the containers
 echo ""

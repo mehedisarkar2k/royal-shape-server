@@ -1,10 +1,10 @@
 services:
   # Royal Shape Backend Service
+  # Image is built by GitHub Actions (.github/workflows/docker-publish.yml) and
+  # pushed to GHCR on every push to main — this VPS only pulls and runs it.
+  # Building TypeScript on this box OOMs/thrashes it (only ~1GB RAM).
   royal-shape-backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production
+    image: ghcr.io/mehedisarkar2k/royal-shape-server:latest
     container_name: royal-shape-backend
     restart: unless-stopped
     ports:

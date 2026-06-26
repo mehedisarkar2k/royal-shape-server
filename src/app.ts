@@ -22,7 +22,7 @@ app.use(helmet());
 const getAllowedOrigins = (): string[] => {
   const envOrigins = process.env.ALLOWED_ORIGINS;
   if (!envOrigins) return [];
-  return envOrigins.split(",").map(origin => origin.trim());
+  return envOrigins.split(",").map((origin) => origin.trim());
 };
 
 const restrictiveCorsOptions: CorsOptions = {

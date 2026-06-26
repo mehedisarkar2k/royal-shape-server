@@ -22,7 +22,11 @@ export class BrevoEmailProvider implements EmailProvider {
     }
   }
 
-  async sendEmail({ to, subject, html }: SendEmailOptions): Promise<{ success: boolean; messageId?: string; error?: any }> {
+  async sendEmail({
+    to,
+    subject,
+    html
+  }: SendEmailOptions): Promise<{ success: boolean; messageId?: string; error?: unknown }> {
     if (!this.apiKey) {
       return { success: false, error: "Brevo API Key is missing" };
     }
@@ -34,22 +38,23 @@ export class BrevoEmailProvider implements EmailProvider {
           sender: { email: this.senderEmail, name: this.senderName },
           to: [{ email: to }],
           subject: subject,
-          htmlContent: html,
+          htmlContent: html
         },
         {
           headers: {
             "api-key": this.apiKey,
             "Content-Type": "application/json",
-            accept: "application/json",
+            accept: "application/json"
           },
-          timeout: 10000,
+          timeout: 10000
         }
       );
 
       logger.info(`[${this.name}] Email sent successfully to ${to} | Message ID: ${response.data.messageId}`);
       return { success: true, messageId: response.data.messageId };
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message;
+    } catch (error) {
+      const axiosError = error as { response?: { data?: { message?: string } }; message: string };
+      const errorMessage = axiosError.response?.data?.message || axiosError.message;
       logger.error(`[${this.name}] Failed to send email to ${to} | Error: ${errorMessage}`);
       return { success: false, error: errorMessage };
     }

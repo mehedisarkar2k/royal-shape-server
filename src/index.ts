@@ -11,7 +11,7 @@ const start = async () => {
   try {
     await dbConnection();
     await initializeFirebase();
-    
+
     // Start background cron jobs
     CronService.start();
 

@@ -17,7 +17,10 @@ COPY . .
 # Run the punycode replacement script
 RUN find ./node_modules -type f -exec sed -i 's/require("punycode")/require("punycode\\/")/' {} + 2>/dev/null || true
 
-# Build TypeScript
+# Build TypeScript. NODE_OPTIONS raises V8's heap ceiling above its
+# physical-RAM-based default — small VPS builders OOM on `tsc --build`
+# otherwise, even with swap free, since V8 doesn't size off swap.
+ENV NODE_OPTIONS=--max-old-space-size=3072
 RUN yarn build
 
 # Stage 2: Production - Create minimal production image

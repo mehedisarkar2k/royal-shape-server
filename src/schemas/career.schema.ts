@@ -12,7 +12,8 @@ export const addJobPostingSchema = object({
     maximumSalary: number().optional().nullable(),
     currency: string().optional().nullable(),
     status: nativeEnum(CareerPostStatus, { required_error: "Status is required" }),
-    applicationDeadline: string().min(1, "Application deadline is required"),
+    keepOpen: boolean().optional().default(false),
+    applicationDeadline: string().optional().nullable(),
     jobDescription: string().min(1, "Job description is required"),
     requirements: array(string().min(1, "Requirement item cannot be empty")).min(1, "Requirements are required"),
     benefits: array(string().min(1, "Benefit item cannot be empty")).optional().nullable(),
@@ -20,6 +21,9 @@ export const addJobPostingSchema = object({
     workingHours: string().optional().nullable(),
     startDate: string().optional().nullable(),
     branchIds: array(string().min(1, "Branch ID cannot be empty")).min(1, "At least one Branch is required")
+  }).refine((data) => data.keepOpen || !!data.applicationDeadline, {
+    message: "Application deadline is required unless the post is kept open",
+    path: ["applicationDeadline"]
   })
 });
 

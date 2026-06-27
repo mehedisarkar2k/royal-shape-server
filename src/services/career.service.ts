@@ -1,4 +1,5 @@
 import { Career, CareerModel } from "../model";
+import { CareerPostStatus } from "../constants/career.constant";
 
 export async function createCareerPost(data: Career) {
   return CareerModel.create(data);
@@ -13,7 +14,10 @@ export async function findAllCareerPostsPaginated(page: number, limit: number) {
 }
 
 export async function findAllPublicCareerPostsPaginated(page: number, limit: number) {
-  return CareerModel.find({ status: "Active", applicationDeadline: { $gte: new Date() } })
+  return CareerModel.find({
+    status: CareerPostStatus.ACTIVE,
+    $or: [{ keepOpen: true }, { applicationDeadline: { $gte: new Date() } }]
+  })
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(limit)
@@ -29,7 +33,10 @@ export async function countAllCareerPosts() {
 }
 
 export async function countAllPublicCareerPosts() {
-  return CareerModel.countDocuments({ status: "Active", applicationDeadline: { $gte: new Date() } });
+  return CareerModel.countDocuments({
+    status: CareerPostStatus.ACTIVE,
+    $or: [{ keepOpen: true }, { applicationDeadline: { $gte: new Date() } }]
+  });
 }
 
 export async function findCareerPostById(careerId: string) {
@@ -37,7 +44,11 @@ export async function findCareerPostById(careerId: string) {
 }
 
 export async function findPublicCareerPostById(careerId: string) {
-  return CareerModel.findOne({ _id: careerId, status: "Active", applicationDeadline: { $gte: new Date() } });
+  return CareerModel.findOne({
+    _id: careerId,
+    status: CareerPostStatus.ACTIVE,
+    $or: [{ keepOpen: true }, { applicationDeadline: { $gte: new Date() } }]
+  });
 }
 
 export async function deleteCareerPostById(careerId: string) {

@@ -924,7 +924,7 @@ export async function getSingleCareerPostPublicDataHandler(req: Request, res: Re
           currency: jobPost.currency
         }
       : null,
-    applicationDeadline: jobPost.applicationDeadline.toISOString().split("T")[0],
+    applicationDeadline: jobPost.applicationDeadline ? jobPost.applicationDeadline.toISOString().split("T")[0] : null,
     postedAt: jobPost.postedAt?.toISOString().split("T")[0],
     jobDescription: jobPost.jobDescription,
     requirements: jobPost.requirements,

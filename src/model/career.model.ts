@@ -60,8 +60,11 @@ export class Career {
   @Prop({ required: true, type: String, enum: CareerPostStatus })
   status: string;
 
-  @Prop({ required: true, type: Date })
-  applicationDeadline: Date;
+  @Prop({ required: true, type: Boolean, default: false })
+  keepOpen: boolean;
+
+  @Prop({ required: false, type: Date, default: null })
+  applicationDeadline: Date | null;
 
   @Prop({ required: true, type: String })
   jobDescription: string;

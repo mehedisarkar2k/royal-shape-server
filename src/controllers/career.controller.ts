@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
 import { isValidDate, parseDateTimeFromDateAndTimeStr, SendErrorResponse, SendResponse } from "../utils";
-import { AddJobPostingType } from "../schemas";
+import { AddJobPostingType, ApplyCareerPostType } from "../schemas";
 import { ApplicationServices, CareerPostStatus, DATA_NOT_FOUND } from "../constants";
 import {
   countAllCareerPosts,
@@ -41,33 +41,36 @@ export async function addJobPostingHandler(
   const functionName = addJobPostingHandler.name;
   const data = req.body;
 
-  if (!isValidDate(data.applicationDeadline)) {
-    return SendErrorResponse.badRequest({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "Invalid application deadline",
-        DATA_NOT_FOUND,
-        "Invalid application deadline"
-      )
-    });
-  }
+  let applicationDeadline: Date | null = null;
+  if (!data.keepOpen) {
+    if (!data.applicationDeadline || !isValidDate(data.applicationDeadline)) {
+      return SendErrorResponse.badRequest({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Invalid application deadline",
+          DATA_NOT_FOUND,
+          "Invalid application deadline"
+        )
+      });
+    }
 
-  const applicationDeadline = parseDateTimeFromDateAndTimeStr(data.applicationDeadline, "11:59 PM");
-  if (!applicationDeadline) {
-    return SendErrorResponse.badRequest({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "Invalid application deadline",
-        DATA_NOT_FOUND,
-        "Invalid application deadline"
-      )
-    });
+    applicationDeadline = parseDateTimeFromDateAndTimeStr(data.applicationDeadline, "11:59 PM");
+    if (!applicationDeadline) {
+      return SendErrorResponse.badRequest({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Invalid application deadline",
+          DATA_NOT_FOUND,
+          "Invalid application deadline"
+        )
+      });
+    }
   }
 
   const branches = await findBranchesByIds(data.branchIds);
@@ -98,6 +101,7 @@ export async function addJobPostingHandler(
     maximumSalary: data.maximumSalary ?? null,
     currency: data.currency?.trim() || null,
     status: data.status,
+    keepOpen: data.keepOpen ?? false,
     applicationDeadline,
     jobDescription: data.jobDescription.trim(),
     requirements: data.requirements.map((r) => r.trim()),
@@ -136,7 +140,8 @@ export async function getAllJobPostingsHandler(req: Request, res: Response) {
     department: post.department,
     employmentType: post.employmentType,
     jobDescription: post.jobDescription,
-    applicationDeadline: post.applicationDeadline.toISOString().split("T")[0],
+    applicationDeadline: post.applicationDeadline ? post.applicationDeadline.toISOString().split("T")[0] : null,
+    keepOpen: post.keepOpen,
     status: post.status,
     branches: post.branchesInfo.map((b) => ({ id: b.branchId, name: b.branchName })),
     salary: post.showSalary
@@ -195,7 +200,8 @@ export async function getSingleJobPostingHandler(req: Request, res: Response) {
         }
       : null,
     status: jobPost.status,
-    applicationDeadline: jobPost.applicationDeadline.toISOString().split("T")[0],
+    keepOpen: jobPost.keepOpen,
+    applicationDeadline: jobPost.applicationDeadline ? jobPost.applicationDeadline.toISOString().split("T")[0] : null,
     postedAt: jobPost.postedAt?.toISOString().split("T")[0],
     jobDescription: jobPost.jobDescription,
     requirements: jobPost.requirements,
@@ -231,7 +237,8 @@ export async function getAllPublicJobPostingsHandler(req: Request, res: Response
     department: post.department,
     employmentType: post.employmentType,
     jobDescription: post.jobDescription,
-    applicationDeadline: post.applicationDeadline.toISOString().split("T")[0],
+    applicationDeadline: post.applicationDeadline ? post.applicationDeadline.toISOString().split("T")[0] : null,
+    keepOpen: post.keepOpen,
     status: post.status,
     branches: post.branchesInfo.map((b) => ({ id: b.branchId, name: b.branchName })),
     salary: post.showSalary
@@ -292,7 +299,8 @@ export async function getSinglePublicJobPostingHandler(req: Request, res: Respon
         }
       : null,
     status: jobPost.status,
-    applicationDeadline: jobPost.applicationDeadline.toISOString().split("T")[0],
+    keepOpen: jobPost.keepOpen,
+    applicationDeadline: jobPost.applicationDeadline ? jobPost.applicationDeadline.toISOString().split("T")[0] : null,
     postedAt: jobPost.postedAt?.toISOString().split("T")[0],
     jobDescription: jobPost.jobDescription,
     requirements: jobPost.requirements,
@@ -387,33 +395,36 @@ export async function updateJobPostingHandler(
     });
   }
 
-  if (!isValidDate(data.applicationDeadline)) {
-    return SendErrorResponse.badRequest({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "Invalid application deadline",
-        DATA_NOT_FOUND,
-        "Invalid application deadline"
-      )
-    });
-  }
+  let applicationDeadline: Date | null = null;
+  if (!data.keepOpen) {
+    if (!data.applicationDeadline || !isValidDate(data.applicationDeadline)) {
+      return SendErrorResponse.badRequest({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Invalid application deadline",
+          DATA_NOT_FOUND,
+          "Invalid application deadline"
+        )
+      });
+    }
 
-  const applicationDeadline = parseDateTimeFromDateAndTimeStr(data.applicationDeadline, "11:59 PM");
-  if (!applicationDeadline) {
-    return SendErrorResponse.badRequest({
-      res,
-      ...buildErrorPayload(
-        req.originalUrl,
-        functionName,
-        req.method,
-        "Invalid application deadline",
-        DATA_NOT_FOUND,
-        "Invalid application deadline"
-      )
-    });
+    applicationDeadline = parseDateTimeFromDateAndTimeStr(data.applicationDeadline, "11:59 PM");
+    if (!applicationDeadline) {
+      return SendErrorResponse.badRequest({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          "Invalid application deadline",
+          DATA_NOT_FOUND,
+          "Invalid application deadline"
+        )
+      });
+    }
   }
 
   const branches = await findBranchesByIds(data.branchIds);
@@ -439,7 +450,8 @@ export async function updateJobPostingHandler(
   jobPost.maximumSalary = data.maximumSalary ?? jobPost.maximumSalary;
   jobPost.currency = data.currency?.trim() || jobPost.currency;
   jobPost.status = data.status || jobPost.status;
-  jobPost.applicationDeadline = applicationDeadline || jobPost.applicationDeadline;
+  jobPost.keepOpen = data.keepOpen ?? jobPost.keepOpen;
+  jobPost.applicationDeadline = data.keepOpen ? null : applicationDeadline || jobPost.applicationDeadline;
   jobPost.jobDescription = data.jobDescription.trim() || jobPost.jobDescription;
   jobPost.requirements = data.requirements ? data.requirements.map((r) => r.trim()) : jobPost.requirements;
   jobPost.benefits = data.benefits ? data.benefits.map((b) => b.trim()) : jobPost.benefits;

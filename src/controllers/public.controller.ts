@@ -137,12 +137,23 @@ export async function getWebsiteHomePublicDataHandler(req: Request, res: Respons
   }
 
   const serviceCategories = await findAllServiceCategories();
-  const services = serviceCategories.map((category) => ({
-    id: category._id.toString(),
-    name: category.name,
-    description: category.description,
-    image: category.thumbnail
-  }));
+  const services = await Promise.all(
+    serviceCategories.map(async (category) => {
+      const categoryServices = await findServicesByCategoryId(category._id.toString());
+      return {
+        id: category._id.toString(),
+        name: category.name,
+        description: category.description,
+        image: category.thumbnail,
+        prices: categoryServices.map((service) => ({
+          name: service.name,
+          price: `$${service.price}`,
+          duration: service.duration,
+          description: service.description
+        }))
+      };
+    })
+  );
 
   const employees = await findAllEmployeesPaginated(1, 4);
   const experts = employees.map((employee) => ({

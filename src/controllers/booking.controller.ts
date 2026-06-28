@@ -143,10 +143,20 @@ export async function getAvailableSlotsHandler(req: Request, res: Response) {
     // Find existing bookings for that day and branch
     const existingBookings = await findBookingsByBranchAndDate(branchId as string, bookingDate);
 
-    // When the requested date is today (Australian time), hide slots whose start time has already passed
+    // Availability is evaluated in the business timezone (Australia/Sydney), not the
+    // caller's. A date already past there has no bookable slots; today hides times
+    // that have already passed.
     const now = DateTime.now().setZone("Australia/Sydney");
-    const isToday = now.toFormat("yyyy-MM-dd") === (date as string);
-    const minStartMinutes = isToday ? now.hour * 60 + now.minute : undefined;
+    const todayStr = now.toFormat("yyyy-MM-dd");
+    const requestedDateStr = date as string;
+    if (requestedDateStr < todayStr) {
+      return SendResponse.success({
+        res,
+        message: "Available slots fetched successfully",
+        data: { availableSlots: { morning: [], afternoon: [], evening: [] } }
+      });
+    }
+    const minStartMinutes = requestedDateStr === todayStr ? now.hour * 60 + now.minute : undefined;
 
     if (comboId) {
       const comboService = await findComboById(comboId as string);

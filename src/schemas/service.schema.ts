@@ -15,7 +15,8 @@ export const createServiceCategorySchema = object({
     }),
     thumbnail: string({
       required_error: "Service category thumbnail is required"
-    })
+    }),
+    displayOrder: number().optional()
   })
 });
 export type CreateServiceCategoryInput = TypeOf<typeof createServiceCategorySchema>["body"];

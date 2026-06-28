@@ -196,6 +196,7 @@ export async function updateServiceCategoryHandler(
   serviceCategory.description = data.description?.trim() || serviceCategory.description;
   serviceCategory.status = data.status || serviceCategory.status;
   serviceCategory.thumbnail = data.thumbnail || serviceCategory.thumbnail;
+  serviceCategory.displayOrder = data.displayOrder ?? serviceCategory.displayOrder;
   serviceCategory.branches = branches.map((branch) => ({ branchId: branch._id.toString(), branchName: branch.name }));
 
   await serviceCategory.save();
@@ -409,6 +410,7 @@ export async function getAllServiceCategoriesWithDetailsHandler(req: Request, re
         })),
         status: category.status,
         thumbnail: category.thumbnail || null,
+        displayOrder: category.displayOrder ?? 0,
         numberOfServices: servicesCount
       };
     })
@@ -489,7 +491,8 @@ export async function getSingleServiceCategoryHandler(req: Request, res: Respons
         name: b.branchName
       })),
       status: category.status,
-      thumbnail: category.thumbnail || null
+      thumbnail: category.thumbnail || null,
+      displayOrder: category.displayOrder ?? 0
     }
   });
 }

@@ -5,7 +5,7 @@ export async function createServiceCategory(data: ServiceCategory) {
 }
 
 export async function findAllServiceCategories() {
-  return ServiceCategoryModel.find();
+  return ServiceCategoryModel.find().sort({ displayOrder: 1 });
 }
 
 export async function findAllServiceCategoriesOfBranch(branchId: string) {

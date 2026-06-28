@@ -1,6 +1,7 @@
 /* eslint-disable */
 
 import { Request, Response } from "express";
+import { DateTime } from "luxon";
 import { v4 as uuid } from "uuid";
 import {
   SendResponse,
@@ -79,6 +80,10 @@ const invalidateBookingCaches = (bookingId?: string) => {
   }
 };
 
+/** True when the service/combo is actually offered at the given branch. */
+const isOfferedAtBranch = (entity: { branches: { branchId: string }[] }, branchId: string) =>
+  entity.branches.some((b) => b.branchId === branchId);
+
 export async function getAvailableSlotsHandler(req: Request, res: Response) {
   const functionName = getAvailableSlotsHandler.name;
   const { branchId, date, type, serviceIds, comboId } = req.query;
@@ -138,6 +143,11 @@ export async function getAvailableSlotsHandler(req: Request, res: Response) {
     // Find existing bookings for that day and branch
     const existingBookings = await findBookingsByBranchAndDate(branchId as string, bookingDate);
 
+    // When the requested date is today (Australian time), hide slots whose start time has already passed
+    const now = DateTime.now().setZone("Australia/Sydney");
+    const isToday = now.toFormat("yyyy-MM-dd") === (date as string);
+    const minStartMinutes = isToday ? now.hour * 60 + now.minute : undefined;
+
     if (comboId) {
       const comboService = await findComboById(comboId as string);
       if (!comboService) {
@@ -147,10 +157,24 @@ export async function getAvailableSlotsHandler(req: Request, res: Response) {
         });
       }
 
+      if (!isOfferedAtBranch(comboService, branchId as string)) {
+        return SendErrorResponse.badRequest({
+          res,
+          message: "This combo is not offered at the selected branch",
+          data: {
+            clientError: { ...BAD_REQUEST, message: "This combo is not available at the selected branch." }
+          }
+        });
+      }
+
       // Calculate available slots
-      const availableSlots = calculateAvailableSlots(workingHours, existingBookings, [
-        { duration: comboService.duration }
-      ]);
+      const availableSlots = calculateAvailableSlots(
+        workingHours,
+        existingBookings,
+        [{ duration: comboService.duration }],
+        undefined,
+        minStartMinutes
+      );
 
       return SendResponse.success({
         res,
@@ -175,8 +199,27 @@ export async function getAvailableSlotsHandler(req: Request, res: Response) {
       });
     }
 
+    if (services.some((service) => !isOfferedAtBranch(service, branchId as string))) {
+      return SendErrorResponse.badRequest({
+        res,
+        message: "One or more selected services are not offered at the selected branch",
+        data: {
+          clientError: {
+            ...BAD_REQUEST,
+            message: "One or more selected services are not available at the selected branch."
+          }
+        }
+      });
+    }
+
     // Calculate available slots
-    const availableSlots = calculateAvailableSlots(workingHours, existingBookings, services);
+    const availableSlots = calculateAvailableSlots(
+      workingHours,
+      existingBookings,
+      services,
+      undefined,
+      minStartMinutes
+    );
 
     return SendResponse.success({
       res,
@@ -280,6 +323,16 @@ export async function requestBookingHandler(
           DATA_NOT_FOUND,
           "Branch not found"
         )
+      });
+    }
+
+    if (!isOfferedAtBranch(comboService, branchId)) {
+      return SendErrorResponse.badRequest({
+        res,
+        message: "This combo is not offered at the selected branch",
+        data: {
+          clientError: { ...BAD_REQUEST, message: "This combo is not available at the selected branch." }
+        }
       });
     }
 
@@ -454,6 +507,19 @@ export async function requestBookingHandler(
         DATA_NOT_FOUND,
         "Branch not found"
       )
+    });
+  }
+
+  if (servicesForBooking.some((service) => !isOfferedAtBranch(service, branchId))) {
+    return SendErrorResponse.badRequest({
+      res,
+      message: "One or more selected services are not offered at the selected branch",
+      data: {
+        clientError: {
+          ...BAD_REQUEST,
+          message: "One or more selected services are not available at the selected branch."
+        }
+      }
     });
   }
 

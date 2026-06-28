@@ -93,7 +93,8 @@ export function calculateAvailableSlots(
   workingHours: WorkingHours,
   existingBookings: BookingInfo[],
   services: ServiceInfo[],
-  slotDuration: number = 30 // Default slot duration in minutes
+  slotDuration: number = 30, // Default slot duration in minutes
+  minStartMinutes?: number // When set (date is today), hide slots starting at/before this minute-of-day
 ): { morning: TimeSlot[]; afternoon: TimeSlot[]; evening: TimeSlot[] } {
   const serviceDuration = calculateTotalServiceDuration(services);
   // const totalSlotDuration = Math.max(serviceDuration, slotDuration);
@@ -129,6 +130,11 @@ export function calculateAvailableSlots(
     currentTime + totalSlotDuration <= endMinutes;
     currentTime += totalSlotDuration
   ) {
+    // Skip slots that have already passed today (real-time availability)
+    if (minStartMinutes !== undefined && currentTime <= minStartMinutes) {
+      continue;
+    }
+
     const slotEnd = currentTime + totalSlotDuration;
 
     // Check if this slot conflicts with any existing booking

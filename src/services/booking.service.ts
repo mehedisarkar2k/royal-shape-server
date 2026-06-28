@@ -127,3 +127,9 @@ export async function getCustomerBookingHistory(customerId: string, page: number
 export async function countCustomerBookings(customerId: string) {
   return BookingModel.countDocuments({ customerId });
 }
+
+// Number of unique customers who have booked at a given branch.
+export async function countDistinctCustomersByBranch(branchId: string) {
+  const customerIds = await BookingModel.distinct("customerId", { branchId });
+  return customerIds.length;
+}

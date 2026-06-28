@@ -1,7 +1,13 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
 import { CreateBranchType } from "../schemas";
-import { createBranch, findAllBranches, findBranchById } from "../services";
+import {
+  createBranch,
+  findAllBranches,
+  findBranchById,
+  countEmployeesByBranch,
+  countDistinctCustomersByBranch
+} from "../services";
 import { SendErrorResponse, SendResponse, appCache } from "../utils";
 import { uploadFileR2WithAutoKey } from "../services/r2-storage.service";
 import { ApplicationServices, DATA_NOT_FOUND, FORBIDDEN_ERROR, INPUT_MISSING, UNEXPECTED_ERROR } from "../constants";
@@ -71,12 +77,15 @@ export async function createBranchHandler(
 export async function getAllBranchesHandler(req: Request, res: Response) {
   const branches = await findAllBranches();
 
-  return SendResponse.success({
-    res,
-    message: "Branches fetched successfully!",
-    data: {
-      branches: branches.map((branch) => ({
-        id: branch._id.toString(),
+  const branchesWithStats = await Promise.all(
+    branches.map(async (branch) => {
+      const branchId = branch._id.toString();
+      const [numberOfEmployees, numberOfCustomers] = await Promise.all([
+        countEmployeesByBranch(branchId),
+        countDistinctCustomersByBranch(branchId)
+      ]);
+      return {
+        id: branchId,
         name: branch.name,
         phone: branch.phone,
         email: branch.email,
@@ -90,10 +99,17 @@ export async function getAllBranchesHandler(req: Request, res: Response) {
         googleReviewLink: branch.googleReviewLink,
         googleLocationId: branch.googleLocationId,
         rating: branch.rating,
-        numberOfEmployees: 8, // TODO: replace with actual logic to get number of employees
-        numberOfCustomers: 100, // TODO: replace with actual logic to get number of customers
-        avgRevenueMonthly: 5000 // TODO: replace with actual logic to get average monthly revenue
-      }))
+        numberOfEmployees,
+        numberOfCustomers
+      };
+    })
+  );
+
+  return SendResponse.success({
+    res,
+    message: "Branches fetched successfully!",
+    data: {
+      branches: branchesWithStats
     }
   });
 }

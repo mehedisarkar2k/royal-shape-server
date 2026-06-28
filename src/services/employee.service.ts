@@ -24,6 +24,10 @@ export async function countAllEmployees() {
   return EmployeeModel.countDocuments({});
 }
 
+export async function countEmployeesByBranch(branchId: string) {
+  return EmployeeModel.countDocuments({ "branchInfo.branchId": branchId });
+}
+
 export async function deleteEmployeeById(employeeId: string) {
   return EmployeeModel.findByIdAndDelete(employeeId);
 }

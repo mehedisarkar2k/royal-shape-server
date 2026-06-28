@@ -37,6 +37,11 @@ export class Service {
 
   @Prop({ required: true, type: String, enum: ServiceStatus })
   status: ServiceStatus;
+
+  // Ascending sort position within its category (lower shows first).
+  // Unset/new services default to the end.
+  @Prop({ required: false, type: Number, default: 9999 })
+  displayOrder?: number;
 }
 
 export const ServiceModel = getModelForClass(Service);

@@ -81,6 +81,11 @@ export class Branch {
 
   @Prop({ required: true, type: Number })
   longitude: number;
+
+  // Ascending sort position on the website (lower shows first). Unset/new
+  // branches default to the end.
+  @Prop({ required: false, type: Number, default: 9999 })
+  displayOrder?: number;
 }
 
 export const BranchModel = getModelForClass(Branch);

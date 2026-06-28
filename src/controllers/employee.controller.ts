@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
 import { AddEmployeeInput } from "../schemas";
-import { SendErrorResponse, SendResponse } from "../utils";
+import { SendErrorResponse, SendResponse, appCache } from "../utils";
 import {
   countAllEmployees,
   createEmployee,
@@ -86,6 +86,8 @@ export async function addEmployeeHandler(
       )
     });
   }
+
+  appCache.del("website_home_data");
 
   return SendResponse.success({
     res,
@@ -210,6 +212,8 @@ export async function deleteEmployeeHandler(req: Request, res: Response) {
 
   await deleteEmployeeById(employeeId);
 
+  appCache.del("website_home_data");
+
   return SendResponse.success({
     res,
     message: "Employee deleted successfully",
@@ -273,6 +277,8 @@ export async function updateEmployeeHandler(
   employee.profileImage = data.profileImage?.trim() || null;
 
   await employee.save();
+
+  appCache.del("website_home_data");
 
   return SendResponse.success({
     res,

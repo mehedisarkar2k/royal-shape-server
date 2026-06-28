@@ -28,7 +28,7 @@ export async function createService(data: Service) {
 }
 
 export async function findServicesByCategoryId(categoryId: string) {
-  return ServiceModel.find({ categoryId });
+  return ServiceModel.find({ categoryId }).sort({ displayOrder: 1, createdAt: 1 });
 }
 
 export async function findActiveServicesByCategoryIdAndBranch(categoryId: string, branchId: string) {
@@ -36,7 +36,7 @@ export async function findActiveServicesByCategoryIdAndBranch(categoryId: string
     categoryId,
     status: "active",
     "branches.branchId": branchId
-  });
+  }).sort({ displayOrder: 1, createdAt: 1 });
 }
 
 export async function findServicesByIds(serviceIds: string[]) {

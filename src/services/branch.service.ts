@@ -5,7 +5,7 @@ export function createBranch(data: Branch) {
 }
 
 export function findAllBranches() {
-  return BranchModel.find();
+  return BranchModel.find().sort({ displayOrder: 1, createdAt: 1 });
 }
 
 export function findBranchById(id: string) {

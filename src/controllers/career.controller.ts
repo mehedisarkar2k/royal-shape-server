@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
 import { isValidDate, parseDateTimeFromDateAndTimeStr, SendErrorResponse, SendResponse } from "../utils";
-import { AddJobPostingType, ApplyCareerPostType } from "../schemas";
+import { AddJobPostingType } from "../schemas";
 import { ApplicationServices, CareerPostStatus, DATA_NOT_FOUND } from "../constants";
 import {
   countAllCareerPosts,

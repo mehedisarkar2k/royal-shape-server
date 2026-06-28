@@ -3,7 +3,8 @@ import { v4 as uuid } from "uuid";
 import { CreateBranchType } from "../schemas";
 import { createBranch, findAllBranches, findBranchById } from "../services";
 import { SendErrorResponse, SendResponse, appCache } from "../utils";
-import { ApplicationServices, DATA_NOT_FOUND, FORBIDDEN_ERROR } from "../constants";
+import { uploadFileR2WithAutoKey } from "../services/r2-storage.service";
+import { ApplicationServices, DATA_NOT_FOUND, FORBIDDEN_ERROR, INPUT_MISSING, UNEXPECTED_ERROR } from "../constants";
 
 const buildErrorPayload = (
   endpoint: string,
@@ -50,6 +51,7 @@ export async function createBranchHandler(
   const newBranch = await createBranch({
     ...data,
     phone: { ...data.phone, e164: `${data.phone.countryCode}${data.phone.number}` },
+    image: data.image || null,
     latitude: data.latitude,
     longitude: data.longitude
   });
@@ -84,6 +86,7 @@ export async function getAllBranchesHandler(req: Request, res: Response) {
         weeklySchedule: branch.weeklySchedule,
         establishedYear: branch.establishedYear,
         description: branch.description,
+        image: branch.image,
         googleReviewLink: branch.googleReviewLink,
         googleLocationId: branch.googleLocationId,
         rating: branch.rating,
@@ -143,6 +146,7 @@ export async function updateBranchHandler(
   branch.weeklySchedule = data.weeklySchedule;
   branch.establishedYear = data.establishedYear || null;
   branch.description = data.description || null;
+  branch.image = data.image || null;
   branch.googleReviewLink = data.googleReviewLink || null;
   branch.googleLocationId = data.googleLocationId || null;
   branch.latitude = data.latitude;
@@ -215,6 +219,7 @@ export async function getBranchByIdHandler(req: Request<{ id: string }>, res: Re
         weeklySchedule: branch.weeklySchedule,
         establishedYear: branch.establishedYear,
         description: branch.description,
+        image: branch.image,
         googleReviewLink: branch.googleReviewLink,
         googleLocationId: branch.googleLocationId,
         rating: branch.rating,
@@ -272,6 +277,64 @@ export async function deleteBranchHandler(req: Request<{ id: string }>, res: Res
     message: "Branch deleted successfully!",
     data: {
       id: branch._id.toString()
+    }
+  });
+}
+
+export async function uploadBranchImageHandler(req: Request, res: Response) {
+  const functionName = uploadBranchImageHandler.name;
+  const { file } = req;
+  if (!file) {
+    return SendErrorResponse.badRequest({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        "No image file uploaded",
+        INPUT_MISSING,
+        "No image file uploaded"
+      )
+    });
+  }
+
+  const filepath = file.path;
+
+  const fileUploadRes = await uploadFileR2WithAutoKey(filepath, "branch-images", false);
+
+  if (!fileUploadRes.success) {
+    if (fileUploadRes.code === 404) {
+      return SendErrorResponse.notFound({
+        res,
+        ...buildErrorPayload(
+          req.originalUrl,
+          functionName,
+          req.method,
+          fileUploadRes.message || "Image not found",
+          DATA_NOT_FOUND,
+          "Image not found"
+        )
+      });
+    }
+
+    return SendErrorResponse.internalServer({
+      res,
+      ...buildErrorPayload(
+        req.originalUrl,
+        functionName,
+        req.method,
+        fileUploadRes.message || "Image upload failed",
+        UNEXPECTED_ERROR,
+        "Image upload failed"
+      )
+    });
+  }
+
+  return SendResponse.success({
+    res,
+    message: "Image uploaded successfully",
+    data: {
+      url: fileUploadRes.publicUrl
     }
   });
 }

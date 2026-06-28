@@ -176,6 +176,7 @@ export async function getWebsiteHomePublicDataHandler(req: Request, res: Respons
       phone: branch.phone,
       email: branch.email,
       rating: branch.rating,
+      image: branch.image,
       openingHours: openingHourStr,
       latitude: branch.latitude,
       longitude: branch.longitude
@@ -553,6 +554,7 @@ export async function getWebsiteSingleServicePageDataHandler(req: Request, res: 
       phone: branch.phone,
       email: branch.email,
       rating: branch.rating,
+      image: branch.image,
       openingHours: openingHourStr,
       latitude: branch.latitude,
       longitude: branch.longitude
@@ -727,6 +729,7 @@ export async function getWebsiteAboutPageDataHandler(req: Request, res: Response
       phone: branch.phone,
       email: branch.email,
       rating: branch.rating,
+      image: branch.image,
       openingHours: openingHourStr
     };
   });
@@ -1074,6 +1077,7 @@ export async function getWebsiteContactPageDataHandler(req: Request, res: Respon
       address: branch.address,
       phone: branch.phone,
       email: branch.email,
+      image: branch.image,
       openingHours: openingHourStr
     };
   });
@@ -1103,7 +1107,8 @@ export async function getWebsiteBranchesPublicDataHandler(req: Request, res: Res
     return {
       id: branch._id.toString(),
       name: branch.name,
-      address: branch.address
+      address: branch.address,
+      image: branch.image
     };
   });
 

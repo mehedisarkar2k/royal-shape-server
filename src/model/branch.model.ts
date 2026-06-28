@@ -41,6 +41,9 @@ export class Branch {
   @Prop({ required: false, type: String, default: null })
   description?: string | null;
 
+  @Prop({ required: false, type: String, default: null })
+  image?: string | null;
+
   @Prop({ required: true, type: Phone, _id: false })
   phone: Phone;
 

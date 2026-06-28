@@ -6,9 +6,11 @@ import {
   deleteBranchHandler,
   getAllBranchesHandler,
   getBranchByIdHandler,
-  updateBranchHandler
+  updateBranchHandler,
+  uploadBranchImageHandler
 } from "../controllers";
 import { asyncWrapper } from "../utils";
+import upload from "../utils/multer";
 
 const router = Router();
 
@@ -29,5 +31,12 @@ router.put(
   asyncWrapper(updateBranchHandler)
 );
 router.delete("/delete/:id", requireUser, requireRole("admin"), asyncWrapper(deleteBranchHandler));
+router.post(
+  "/upload/image",
+  requireUser,
+  requireRole("admin"),
+  upload.single("branch-image"),
+  asyncWrapper(uploadBranchImageHandler)
+);
 
 export default router;

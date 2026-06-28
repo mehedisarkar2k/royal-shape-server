@@ -146,6 +146,7 @@ export async function getWebsiteHomePublicDataHandler(req: Request, res: Respons
         description: category.description,
         image: category.thumbnail,
         prices: categoryServices.map((service) => ({
+          id: service._id.toString(),
           name: service.name,
           price: `$${service.price}`,
           duration: service.duration,
@@ -381,6 +382,7 @@ export async function getWebsiteServicesPageDataHandler(req: Request, res: Respo
         description: category.description,
         image: category.thumbnail,
         prices: services.map((service) => ({
+          id: service._id.toString(),
           name: service.name,
           price: `$${service.price}`,
           duration: service.duration,

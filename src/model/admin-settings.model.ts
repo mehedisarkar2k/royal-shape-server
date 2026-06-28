@@ -1,19 +1,12 @@
 import { getModelForClass, ModelOptions, Prop } from "@typegoose/typegoose";
+import { ReminderChannel } from "../constants";
 
 class ReminderSettings {
-  @Prop({ required: true, type: Boolean, default: true })
-  enable3DayReminder: boolean;
+  @Prop({ required: true, type: String, enum: ReminderChannel, default: ReminderChannel.EMAIL })
+  reminder24Hour: ReminderChannel;
 
-  @Prop({ required: true, type: Boolean, default: true })
-  enable24HourReminder: boolean;
-
-  @Prop({ required: true, type: Boolean, default: true })
-  enable6HourReminder: boolean;
-
-  // Also send the 24-hour reminder by SMS (in addition to email). SMS is kept to
-  // the 24h mark only for cost control.
-  @Prop({ required: true, type: Boolean, default: true })
-  enable24HourSms: boolean;
+  @Prop({ required: true, type: String, enum: ReminderChannel, default: ReminderChannel.EMAIL })
+  reminder2Hour: ReminderChannel;
 }
 
 @ModelOptions({ schemaOptions: { collection: "admin_settings", timestamps: true } })

@@ -4,7 +4,7 @@ import { BookingModel, AdminSettingsModel, CustomerModel, BranchModel, BusinessI
 import { logger } from "../utils/logger";
 import { sendAppointmentReminderEmail } from "../utils/send-email";
 import { sendSms } from "../utils/send-sms";
-import { BookingStatus, BookingServiceType } from "../constants";
+import { BookingStatus, BookingServiceType, ReminderChannel } from "../constants";
 import { findServicesByIds } from "./business-service.service";
 import { findComboById } from "./combo.service";
 import { syncGoogleReviews } from "./google-review.service";
@@ -48,10 +48,8 @@ export class CronService {
     try {
       const settings = await AdminSettingsModel.findOne();
       const reminders = settings?.reminders || {
-        enable3DayReminder: true,
-        enable24HourReminder: true,
-        enable6HourReminder: true,
-        enable24HourSms: true
+        reminder24Hour: ReminderChannel.EMAIL,
+        reminder2Hour: ReminderChannel.EMAIL
       };
 
       const now = new Date();
@@ -69,18 +67,13 @@ export class CronService {
 
         const hoursUntilBooking = differenceInHours(bookingDateTime, now);
 
-        // SMS is sent only at the 24h mark (cost control); 3-day/6h are email-only.
-        if (reminders.enable3DayReminder && hoursUntilBooking === 72) {
+        if (hoursUntilBooking === 24 && reminders.reminder24Hour !== ReminderChannel.OFF) {
           // eslint-disable-next-line no-await-in-loop
-          await this.sendReminder(booking, "3 days", false);
+          await this.sendReminder(booking, "24 hours", reminders.reminder24Hour);
         }
-        if (reminders.enable24HourReminder && hoursUntilBooking === 24) {
+        if (hoursUntilBooking === 2 && reminders.reminder2Hour !== ReminderChannel.OFF) {
           // eslint-disable-next-line no-await-in-loop
-          await this.sendReminder(booking, "24 hours", reminders.enable24HourSms !== false);
-        }
-        if (reminders.enable6HourReminder && hoursUntilBooking === 6) {
-          // eslint-disable-next-line no-await-in-loop
-          await this.sendReminder(booking, "6 hours", false);
+          await this.sendReminder(booking, "2 hours", reminders.reminder2Hour);
         }
       }
     } catch (error) {
@@ -88,9 +81,11 @@ export class CronService {
     }
   }
 
-  /** Sends an appointment reminder by email, plus SMS when `withSms` is true. */
+  /** Sends an appointment reminder by email and/or SMS per the configured channel. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static async sendReminder(booking: any, timeframe: string, withSms: boolean) {
+  static async sendReminder(booking: any, timeframe: string, channel: ReminderChannel) {
+    const withEmail = channel === ReminderChannel.EMAIL || channel === ReminderChannel.BOTH;
+    const withSms = channel === ReminderChannel.SMS || channel === ReminderChannel.BOTH;
     try {
       const customer = await CustomerModel.findById(booking.customerId);
       if (!customer) {
@@ -116,7 +111,7 @@ export class CronService {
       const customerName = `${customer.firstName} ${customer.lastName || ""}`.trim() || "Valued Customer";
 
       // Email
-      if (customer.email) {
+      if (withEmail && customer.email) {
         await sendAppointmentReminderEmail({
           service,
           branchName: branch?.name || "our salon",
@@ -131,7 +126,7 @@ export class CronService {
         });
       }
 
-      // SMS (24h only)
+      // SMS
       if (withSms && customer.phone?.e164) {
         const message = `Hi ${customer.firstName || ""}, reminder: your ${service} at ${
           branch?.name || companyName
